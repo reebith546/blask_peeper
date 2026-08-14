@@ -22,7 +22,17 @@ copy .env.example .env
 ```
 
 Заполните `.env` реальными значениями (минимум — параметры подключения к PostgreSQL).
-Поднимите PostgreSQL и создайте базу `blackpepper` (имя берётся из `.env`).
+
+Поднимите PostgreSQL. Проще всего — через Docker (нужен запущенный Docker Desktop):
+
+```bash
+docker compose up -d
+```
+
+Это создаст контейнер с базой `blackpepper` на порту 5432 (имя/порт берутся из `.env`),
+данные сохраняются между перезапусками в volume `postgres_data`. Если PostgreSQL уже
+установлен у вас локально другим способом — просто убедитесь, что он запущен и в `.env`
+указаны верные параметры подключения, `docker-compose.yml` тогда не нужен.
 
 ```bash
 python manage.py migrate
