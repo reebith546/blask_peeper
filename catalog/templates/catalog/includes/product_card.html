@@ -1,0 +1,33 @@
+{% load shop_extras %}
+<div class="bouquet-card">
+  <div class="bouquet-card__image-wrap">
+    <a href="{% url 'catalog:product_detail' product.slug %}">
+      <img class="bouquet-card__image" src="{{ product.image.url }}" alt="{{ product.name }}">
+    </a>
+    {% if product.in_stock %}
+      <form action="{% url 'main:cart_add' product.pk %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="bouquet-card__quickadd" type="submit" title="Быстро добавить в корзину">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="bouquet-card__body">
+    <h3 class="bouquet-card__title"><a href="{% url 'catalog:product_detail' product.slug %}">{{ product.name }}</a></h3>
+    <p class="bouquet-card__composition">{{ product.composition|default:"" }}</p>
+    <div class="bouquet-card__footer">
+      <span class="bouquet-card__price">{{ product.price|kzt }}</span>
+      {% if product.in_stock %}
+        <form action="{% url 'main:cart_add' product.pk %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button class="bouquet-card__cart-btn" type="submit">В корзину</button>
+        </form>
+      {% else %}
+        <span class="bouquet-card__out-of-stock">Нет в наличии</span>
+      {% endif %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+from django.urls import path
+
+from . import views
+
+app_name = 'main'
+
+urlpatterns = [
+    path('', views.home, name='home'),
+    path('about/', views.about, name='about'),
+    path('newsletter/subscribe/', views.newsletter_subscribe, name='newsletter_subscribe'),
+    path('cart/', views.cart_detail, name='cart'),
+    path('cart/add/<int:product_id>/', views.cart_add, name='cart_add'),
+    path('cart/update/<int:product_id>/', views.cart_update, name='cart_update'),
+    path('cart/remove/<int:product_id>/', views.cart_remove, name='cart_remove'),
+    path('cart/details/', views.cart_details, name='cart_details'),
+    path('checkout/', views.checkout, name='checkout'),
+    path('order/<int:order_id>/success/', views.order_success, name='order_success'),
+]
