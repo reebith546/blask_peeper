@@ -24,12 +24,12 @@ class OrderItemInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'customer_name', 'customer_phone', 'status',
+        'id', 'customer_name', 'customer_phone', 'delivery_address', 'comment_preview', 'status',
         'total_price_display', 'delivery_date', 'created_at',
     )
     list_editable = ('status',)
     list_filter = ('status', 'delivery_zone', 'created_at')
-    search_fields = ('id', 'customer_name', 'customer_phone', 'customer_email')
+    search_fields = ('id', 'customer_name', 'customer_phone', 'customer_email', 'delivery_address')
     readonly_fields = ('created_at', 'updated_at', 'total_price')
     inlines = [OrderItemInline]
     date_hierarchy = 'created_at'
@@ -49,6 +49,12 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.display(description='Сумма, ₸', ordering='total_price')
     def total_price_display(self, obj):
         return _kzt(obj.total_price)
+
+    @admin.display(description='Комментарий')
+    def comment_preview(self, obj):
+        if not obj.comment:
+            return '—'
+        return obj.comment if len(obj.comment) <= 40 else obj.comment[:40] + '…'
 
     @admin.action(description='Отметить как «Оплачен»')
     def mark_as_paid(self, request, queryset):
