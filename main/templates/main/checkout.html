@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load shop_extras %}
+
+{% block title %}Оформление заказа — Black Pepper Flower Bar{% endblock %}
+
+{% block extra_head %}
+<script>
+  function updateDeliveryPrice(select) {
+    var option = select.options[select.selectedIndex];
+    var price = option ? parseInt(option.dataset.price || '0', 10) : 0;
+    var itemsTotal = parseInt(document.getElementById('checkout-items-total').dataset.amount, 10);
+    document.getElementById('checkout-delivery-price').textContent = price ? price.toLocaleString('ru-RU') + ' ₸' : 'выберите район';
+    document.getElementById('checkout-total-price').textContent = (itemsTotal + price).toLocaleString('ru-RU') + ' ₸';
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+
+<section class="checkout">
+  <div class="container">
+    <div class="section-head">
+      <h1 class="section-title">Оформление заказа</h1>
+    </div>
+
+    <form class="checkout__grid" method="post">
+      {% csrf_token %}
+      <div>
+        <div class="checkout-section">
+          <h2 class="checkout-section__title">Контактные данные</h2>
+          <div class="checkout-row">
+            <div class="form-field">
+              <label for="customer-name">Имя</label>
+              <input type="text" id="customer-name" name="customer_name" required>
+            </div>
+            <div class="form-field">
+              <label for="customer-phone">Телефон</label>
+              <input type="tel" id="customer-phone" name="customer_phone" required>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="customer-email">Email (необязательно)</label>
+            <input type="email" id="customer-email" name="customer_email">
+          </div>
+        </div>
+
+        <div class="checkout-section">
+          <h2 class="checkout-section__title">Доставка</h2>
+          <div class="form-field">
+            <label for="delivery-address">Адрес доставки</label>
+            <input type="text" id="delivery-address" name="delivery_address" placeholder="Улица, дом, квартира" required>
+          </div>
+          <div class="form-field">
+            <label for="delivery-zone">Район города</label>
+            <select id="delivery-zone" name="delivery_zone" onchange="updateDeliveryPrice(this)" required>
+              <option value="">Выберите район</option>
+              {% for zone in delivery_zones %}
+                <option value="{{ zone.pk }}" data-price="{{ zone.price|stringformat:'d' }}">{{ zone.name }} — {{ zone.price|kzt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if details.delivery_date or details.delivery_time or details.card_text %}
+          <p class="empty-note">
+            {% if details.delivery_date %}Дата доставки: {{ details.delivery_date }}. {% endif %}
+            {% if details.delivery_time %}Время: {{ details.delivery_time }}. {% endif %}
+            {% if details.card_text %}Открытка: «{{ details.card_text }}». {% endif %}
+            <a href="{% url 'main:cart' %}" class="section-link">Изменить</a>
+          </p>
+          {% endif %}
+          <div class="form-field">
+            <label for="comment">Комментарий к заказу (необязательно)</label>
+            <textarea id="comment" name="comment"></textarea>
+          </div>
+        </div>
+
+        <div class="checkout-section">
+          <h2 class="checkout-section__title">Оплата</h2>
+          <div class="payment-widget-placeholder">
+            Виджет TipTop Pay будет подключён здесь — оплата картой без перехода на отдельную страницу.
+          </div>
+        </div>
+      </div>
+
+      <aside class="cart-summary">
+        <h3 class="cart-summary__title">Ваш заказ</h3>
+        <div class="cart-summary__row">
+          <span>Товары</span>
+          <span id="checkout-items-total" data-amount="{{ cart.get_total_price|stringformat:'d' }}">{{ cart.get_total_price|kzt }}</span>
+        </div>
+        <div class="cart-summary__row">
+          <span>Доставка</span>
+          <span id="checkout-delivery-price">выберите район</span>
+        </div>
+        <div class="cart-summary__row cart-summary__row--total">
+          <span>Итого</span>
+          <span id="checkout-total-price">{{ cart.get_total_price|kzt }}</span>
+        </div>
+        <button type="submit" class="btn btn--primary">Оплатить</button>
+      </aside>
+    </form>
+
+  </div>
+</section>
+
+{% endblock %}

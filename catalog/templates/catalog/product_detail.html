@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load shop_extras %}
+
+{% block title %}{{ product.name }} — Black Pepper Flower Bar{% endblock %}
+
+{% block content %}
+
+<section class="product-detail">
+  <div class="container product-detail__grid">
+    <div>
+      <div class="product-detail__image-wrap">
+        <img class="product-detail__image" src="{{ product.image.url }}" alt="{{ product.name }}">
+      </div>
+      {% if product.gallery.all %}
+      <div class="product-detail__gallery">
+        {% for photo in product.gallery.all %}
+          <img src="{{ photo.image.url }}" alt="{{ product.name }}">
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <span class="eyebrow">{{ product.category.name }}</span>
+      <h1 class="product-detail__title">{{ product.name }}</h1>
+      <div class="product-detail__price">{{ product.price|kzt }}</div>
+
+      {% if product.composition %}
+        <p class="product-detail__composition">{{ product.composition }}</p>
+      {% endif %}
+
+      {% if product.description %}
+        <p class="product-detail__description">{{ product.description|linebreaksbr }}</p>
+      {% endif %}
+
+      {% if product.in_stock %}
+        <p class="product-detail__stock product-detail__stock--in">Есть в наличии</p>
+      {% else %}
+        <p class="product-detail__stock product-detail__stock--out">Нет в наличии</p>
+      {% endif %}
+
+      <form class="product-detail__actions" action="{% url 'main:cart_add' product.pk %}" method="post">
+        {% csrf_token %}
+        <input class="qty-input" type="number" name="quantity" min="1" max="{{ product.stock }}" value="1" {% if not product.in_stock %}disabled{% endif %}>
+        <button class="btn btn--primary" type="submit" {% if not product.in_stock %}disabled{% endif %}>В корзину</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

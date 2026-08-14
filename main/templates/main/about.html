@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}О нас — Black Pepper Flower Bar{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div class="container">
+    <span class="eyebrow">О нас</span>
+    <h1 class="hero__title" style="font-size: 56px;">Цветы с<br>характером.</h1>
+    <p class="hero__description" style="max-width: 640px;">
+      Black Pepper Flower Bar — авторская флористика в Алматы. Мы не собираем букеты по шаблону:
+      каждая композиция — работа флориста-автора, где сочетаются фактура, цвет и характер получателя.
+    </p>
+  </div>
+</section>
+
+<section class="advantages">
+  <div class="container">
+    <div class="advantages-grid">
+      <div class="advantage">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13Z" stroke="currentColor" stroke-width="1.6"/></svg>
+        <h3 class="advantage__title">Свежие цветы</h3>
+        <p class="advantage__text">Прямые поставки от проверенных ферм, без посредников и складов.</p>
+      </div>
+      <div class="advantage">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <h3 class="advantage__title">Доставка за 2 часа</h3>
+        <p class="advantage__text">По всему Алматы, ежедневно, с фотографией готового букета.</p>
+      </div>
+      <div class="advantage">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20 20 4M6 4h4M4 6V2M18 20h4M22 18h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h3 class="advantage__title">Авторская флористика</h3>
+        <p class="advantage__text">Каждая сборка — работа флориста-автора, а не сборка по шаблону.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="section-title">Контакты</h2>
+    </div>
+    <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 500px;">
+      г. Алматы, ул. Кабанбай батыра, 47<br>
+      +7 (707) 123-45-67<br>
+      hello@characterflowers.kz<br><br>
+      Пн–Вс: 09:00–21:00
+    </p>
+    <div class="hero__buttons">
+      <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-light">Смотреть каталог</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

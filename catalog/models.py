@@ -6,7 +6,7 @@ class Category(models.Model):
     """Категория товаров каталога (например, «Монобукеты», «Свадебные»)."""
 
     name = models.CharField('Название', max_length=150)
-    slug = models.SlugField('Слаг (для URL)', max_length=160, unique=True, blank=True)
+    slug = models.SlugField('Слаг (для URL)', max_length=160, unique=True, blank=True, allow_unicode=True)
     image = models.ImageField('Изображение', upload_to='categories/', blank=True, null=True)
     order = models.PositiveIntegerField('Порядок сортировки', default=0)
     is_active = models.BooleanField('Активна', default=True)
@@ -33,7 +33,7 @@ class Product(models.Model):
         on_delete=models.PROTECT,
     )
     name = models.CharField('Название', max_length=200)
-    slug = models.SlugField('Слаг (для URL)', max_length=210, unique=True, blank=True)
+    slug = models.SlugField('Слаг (для URL)', max_length=210, unique=True, blank=True, allow_unicode=True)
     price = models.DecimalField('Цена, ₸', max_digits=10, decimal_places=2)
     composition = models.TextField('Состав', blank=True)
     description = models.TextField('Описание', blank=True)

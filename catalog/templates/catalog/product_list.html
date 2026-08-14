@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load shop_extras %}
+
+{% block title %}{% if current_category %}{{ current_category.name }}{% else %}Каталог{% endif %} — Black Pepper Flower Bar{% endblock %}
+
+{% block content %}
+
+<section class="catalog-header">
+  <div class="container">
+    <span class="eyebrow">Каталог</span>
+    <h1 class="section-title">{% if current_category %}{{ current_category.name }}{% else %}Все букеты{% endif %}</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+
+    <div class="catalog-filters">
+      <a href="{% url 'catalog:product_list' %}" class="{% if not current_category %}is-active{% endif %}">Все</a>
+      {% for category in categories %}
+        <a href="{% url 'catalog:product_list_by_category' category.slug %}" class="{% if current_category and current_category.pk == category.pk %}is-active{% endif %}">{{ category.name }}</a>
+      {% endfor %}
+    </div>
+
+    {% if products %}
+    <div class="bouquets-grid">
+      {% for product in products %}
+        {% include "catalog/includes/product_card.html" %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-note">В этой категории пока нет товаров.</p>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

@@ -29,3 +29,18 @@ class HomepageBlock(models.Model):
 
     def __str__(self):
         return f'{self.get_block_type_display()} — {self.title or "без заголовка"}'
+
+
+class NewsletterSubscriber(models.Model):
+    """Подписчик формы «Новости и предложения» в футере."""
+
+    email = models.EmailField('Email', unique=True)
+    created_at = models.DateTimeField('Подписался', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Подписчик рассылки'
+        verbose_name_plural = 'Подписчики рассылки'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.email
