@@ -23,7 +23,9 @@ class Order(models.Model):
     customer_phone = models.CharField('Телефон клиента', max_length=32)
     customer_email = models.EmailField('Email клиента', blank=True)
 
-    # Доставка
+    # Доставка. Координаты адреса намеренно не хранятся — бесплатный тариф
+    # Яндекс Карт запрещает сохранять данные геокодирования, координаты
+    # используются только на лету для расчёта зоны/цены в момент заказа.
     delivery_zone = models.ForeignKey(
         DeliveryZone, verbose_name='Зона доставки', related_name='orders',
         on_delete=models.PROTECT, null=True, blank=True,

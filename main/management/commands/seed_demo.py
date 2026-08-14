@@ -6,7 +6,7 @@ from PIL import Image
 
 from catalog.models import Category, Product
 from content.models import HomepageBlock
-from delivery.models import DeliveryZone
+from delivery.models import DeliveryZone, ShopLocation
 from reviews.models import Review
 
 # Заглушки-изображения (однотонные, в тонах бренда) — чтобы можно было
@@ -102,13 +102,32 @@ class Command(BaseCommand):
                 defaults={'text': text, 'rating': 5, 'status': Review.Status.PUBLISHED},
             )
 
+        ShopLocation.objects.get_or_create(
+            name='Black Pepper Flower Bar',
+            defaults={
+                # Ориентировочные координаты центра Алматы — уточните точный адрес магазина в админке.
+                'address': 'г. Алматы, ул. Кабанбай батыра, 47',
+                'latitude': 43.238949,
+                'longitude': 76.889709,
+            },
+        )
+
         zones_data = [
-            ('Медеуский район', 2000),
-            ('Бостандыкский район', 1500),
-            ('Алмалинский район', 1000),
-            ('Ауэзовский район', 2500),
+            ('Центр', 0, 3, 1000, 30),
+            ('Ближние районы', 3, 7, 1500, 45),
+            ('Средняя удалённость', 7, 12, 2000, 60),
+            ('Дальние районы', 12, 20, 2500, 90),
         ]
-        for i, (name, price) in enumerate(zones_data):
-            DeliveryZone.objects.get_or_create(name=name, defaults={'price': price, 'order': i})
+        for i, (name, radius_from, radius_to, price, minutes) in enumerate(zones_data):
+            DeliveryZone.objects.get_or_create(
+                name=name,
+                defaults={
+                    'radius_from_km': radius_from,
+                    'radius_to_km': radius_to,
+                    'price': price,
+                    'delivery_time_minutes': minutes,
+                    'order': i,
+                },
+            )
 
         self.stdout.write(self.style.SUCCESS('Демо-данные готовы.'))

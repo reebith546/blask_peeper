@@ -147,5 +147,8 @@ ADMIN_INDEX_TITLE = 'Панель управления'
 TIPTOP_PUBLIC_ID = env('TIPTOP_PUBLIC_ID', default='')
 TIPTOP_API_SECRET = env('TIPTOP_API_SECRET', default='')
 
-# 2GIS API — геокодирование адресов доставки (используется на следующем этапе)
-TWOGIS_API_KEY = env('TWOGIS_API_KEY', default='')
+# Яндекс Карты — автоподсказки адреса на чекауте.
+# Геосаджест отдаёт только текстовые подсказки, Геокодер — координаты выбранного
+# варианта; это два разных биллинг-продукта Яндекса, поэтому два ключа.
+YANDEX_SUGGEST_API_KEY = env('YANDEX_SUGGEST_API_KEY', default='')
+YANDEX_GEOCODER_API_KEY = env('YANDEX_GEOCODER_API_KEY', default='')

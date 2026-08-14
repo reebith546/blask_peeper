@@ -1,12 +1,17 @@
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+import requests
+
 from catalog.models import Category, Product
 from content.models import HomepageBlock, NewsletterSubscriber
-from delivery.models import DeliveryZone
+from delivery.models import DeliveryZone, ShopLocation
+from delivery.services import geocode_uri, resolve_delivery_zone, suggest_addresses
 from orders.models import Order, OrderItem
 from reviews.models import Review
 
@@ -117,11 +122,30 @@ def checkout(request):
     delivery_zones = DeliveryZone.objects.filter(is_active=True).order_by('order')
 
     if request.method == 'POST':
-        zone_id = request.POST.get('delivery_zone')
-        delivery_zone = delivery_zones.filter(pk=zone_id).first()
-        delivery_price = delivery_zone.price if delivery_zone else 0
         items_total = cart.get_total_price()
         details = cart.get_details()
+        comment = request.POST.get('comment', '').strip()
+
+        # Координаты используются только на лету — сохранять их в БД нельзя
+        # по условиям бесплатного тарифа Яндекс Карт (см. комментарий в модели Order).
+        delivery_lat = request.POST.get('delivery_lat', '').strip()
+        delivery_lng = request.POST.get('delivery_lng', '').strip()
+
+        if delivery_lat and delivery_lng:
+            # Координаты пришли с виджета подсказок адреса (Яндекс Карты) — это
+            # авторитетный источник цены, ручной выбор зоны игнорируется.
+            delivery_zone, _distance_km = resolve_delivery_zone(delivery_lat, delivery_lng)
+            if delivery_zone is None:
+                comment = (
+                    'Автоматический расчёт доставки недоступен (адрес вне зоны доставки '
+                    'или не настроена точка магазина) — уточнить стоимость вручную.\n' + comment
+                ).strip()
+        else:
+            # Виджет ещё не подключён (нет YANDEX_MAPS_API_KEY) — доверяем ручному выбору зоны.
+            zone_id = request.POST.get('delivery_zone')
+            delivery_zone = delivery_zones.filter(pk=zone_id).first()
+
+        delivery_price = delivery_zone.price if delivery_zone else 0
 
         order = Order.objects.create(
             customer_name=request.POST.get('customer_name', '').strip(),
@@ -133,7 +157,7 @@ def checkout(request):
             delivery_time=details.get('delivery_time', ''),
             delivery_price=delivery_price,
             card_text=details.get('card_text', ''),
-            comment=request.POST.get('comment', '').strip(),
+            comment=comment,
             total_price=items_total + delivery_price,
         )
         for entry in cart:
@@ -150,8 +174,64 @@ def checkout(request):
         'cart': cart,
         'delivery_zones': delivery_zones,
         'details': cart.get_details(),
+        'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
     }
     return render(request, 'main/checkout.html', context)
+
+
+def address_suggest_ajax(request):
+    """Подсказки адреса для чекаута — проксирует Яндекс Геосаджест с сервера."""
+    query = request.GET.get('q', '').strip()
+    if len(query) < 3:
+        return JsonResponse({'results': []})
+
+    shop = ShopLocation.objects.first()
+    try:
+        results = suggest_addresses(
+            query,
+            bias_latitude=shop.latitude if shop else None,
+            bias_longitude=shop.longitude if shop else None,
+        )
+    except requests.RequestException:
+        results = []
+
+    simplified = []
+    for item in results:
+        if not item.get('uri'):
+            continue
+        subtitle = item.get('subtitle', {}).get('text', '')
+        title = item.get('title', {}).get('text', '')
+        simplified.append({
+            'label': f'{title}, {subtitle}' if subtitle else title,
+            'uri': item['uri'],
+        })
+    return JsonResponse({'results': simplified})
+
+
+def address_resolve_ajax(request):
+    """По uri подсказки — геокодирует и подбирает зону/цену. Ничего не сохраняет в БД."""
+    uri = request.GET.get('uri', '').strip()
+    if not uri:
+        return JsonResponse({'zone': None}, status=400)
+
+    try:
+        lat, lng = geocode_uri(uri)
+    except requests.RequestException:
+        lat = lng = None
+
+    if lat is None or lng is None:
+        return JsonResponse({'zone': None, 'lat': None, 'lng': None})
+
+    zone, _distance_km = resolve_delivery_zone(lat, lng)
+    payload = {'lat': lat, 'lng': lng, 'zone': None}
+    if zone is not None:
+        payload['zone'] = {
+            'id': zone.pk,
+            'name': zone.name,
+            'price': int(zone.price),
+            'delivery_time_minutes': zone.delivery_time_minutes,
+        }
+    return JsonResponse(payload)
 
 
 def order_success(request, order_id):

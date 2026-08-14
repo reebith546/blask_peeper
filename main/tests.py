@@ -11,7 +11,7 @@ from PIL import Image
 
 from catalog.models import Category, Product
 from content.models import NewsletterSubscriber
-from delivery.models import DeliveryZone
+from delivery.models import DeliveryZone, ShopLocation
 from orders.models import Order
 
 from .cart import Cart
@@ -68,7 +68,9 @@ class CheckoutFlowTests(TestCase):
             name='Букет', category=self.category, price=Decimal('18500'), stock=5,
             image=_make_test_image(),
         )
-        self.zone = DeliveryZone.objects.create(name='Район', price=Decimal('1500'))
+        self.zone = DeliveryZone.objects.create(
+            name='Район', radius_from_km=0, radius_to_km=5, price=Decimal('1500'),
+        )
 
     def test_add_to_cart_shows_up_in_cart_page(self):
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 2})
@@ -104,6 +106,38 @@ class CheckoutFlowTests(TestCase):
 
         cart_response = self.client.get(reverse('main:cart'))
         self.assertContains(cart_response, 'Корзина пока пуста')
+
+    def test_checkout_with_coordinates_resolves_zone_automatically(self):
+        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
+        # Точка в паре сотен метров от магазина — должна попасть в зону 0–5 км.
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        response = self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Анна',
+            'customer_phone': '+77070000000',
+            'delivery_address': 'ул. Тест, 1',
+            'delivery_lat': '43.240000',
+            'delivery_lng': '76.891000',
+        })
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone, self.zone)
+        self.assertEqual(order.delivery_price, self.zone.price)
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+
+    def test_checkout_with_coordinates_outside_all_zones_falls_back_to_manual_review(self):
+        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
+        # Точка в ~100 км от магазина — вне всех настроенных зон.
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Анна',
+            'customer_phone': '+77070000000',
+            'delivery_address': 'Далеко',
+            'delivery_lat': '44.238949',
+            'delivery_lng': '76.889709',
+        })
+        order = Order.objects.get()
+        self.assertIsNone(order.delivery_zone)
+        self.assertEqual(order.delivery_price, 0)
+        self.assertIn('уточнить стоимость вручную', order.comment)
 
 
 class NewsletterTests(TestCase):

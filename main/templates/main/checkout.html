@@ -9,9 +9,85 @@
     var option = select.options[select.selectedIndex];
     var price = option ? parseInt(option.dataset.price || '0', 10) : 0;
     var itemsTotal = parseInt(document.getElementById('checkout-items-total').dataset.amount, 10);
-    document.getElementById('checkout-delivery-price').textContent = price ? price.toLocaleString('ru-RU') + ' ₸' : 'выберите район';
+    document.getElementById('checkout-delivery-price').textContent = price ? price.toLocaleString('ru-RU') + ' ₸' : 'выберите зону';
     document.getElementById('checkout-total-price').textContent = (itemsTotal + price).toLocaleString('ru-RU') + ' ₸';
   }
+
+  {% if yandex_enabled %}
+  document.addEventListener('DOMContentLoaded', function () {
+    var addressInput = document.getElementById('delivery-address');
+    var suggestList = document.getElementById('address-suggest-list');
+    var latField = document.getElementById('delivery-lat');
+    var lngField = document.getElementById('delivery-lng');
+    var zoneSelect = document.getElementById('delivery-zone');
+    var debounceTimer = null;
+
+    function clearSuggestions() {
+      suggestList.innerHTML = '';
+      suggestList.hidden = true;
+    }
+
+    function renderSuggestions(results) {
+      suggestList.innerHTML = '';
+      if (!results || !results.length) {
+        clearSuggestions();
+        return;
+      }
+      results.forEach(function (item) {
+        var li = document.createElement('li');
+        li.textContent = item.label;
+        li.addEventListener('click', function () { selectSuggestion(item); });
+        suggestList.appendChild(li);
+      });
+      suggestList.hidden = false;
+    }
+
+    function fetchSuggestions(query) {
+      fetch('{% url "main:address_suggest" %}?q=' + encodeURIComponent(query))
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderSuggestions(data.results); })
+        .catch(clearSuggestions);
+    }
+
+    function selectSuggestion(item) {
+      addressInput.value = item.label;
+      clearSuggestions();
+      latField.value = '';
+      lngField.value = '';
+
+      fetch('{% url "main:address_resolve" %}?uri=' + encodeURIComponent(item.uri))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.lat && data.lng) {
+            latField.value = data.lat;
+            lngField.value = data.lng;
+          }
+          if (data.zone && zoneSelect) {
+            zoneSelect.value = String(data.zone.id);
+            updateDeliveryPrice(zoneSelect);
+          }
+        });
+    }
+
+    addressInput.addEventListener('input', function () {
+      latField.value = '';
+      lngField.value = '';
+      var query = addressInput.value.trim();
+      clearTimeout(debounceTimer);
+      if (query.length < 3) {
+        clearSuggestions();
+        return;
+      }
+      debounceTimer = setTimeout(function () { fetchSuggestions(query); }, 300);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target !== addressInput && !suggestList.contains(e.target)) {
+        clearSuggestions();
+      }
+    });
+  });
+  {% endif %}
 </script>
 {% endblock %}
 
@@ -46,18 +122,22 @@
 
         <div class="checkout-section">
           <h2 class="checkout-section__title">Доставка</h2>
-          <div class="form-field">
+          <div class="form-field address-suggest">
             <label for="delivery-address">Адрес доставки</label>
-            <input type="text" id="delivery-address" name="delivery_address" placeholder="Улица, дом, квартира" required>
+            <input type="text" id="delivery-address" name="delivery_address" placeholder="Начните вводить адрес" autocomplete="off" required>
+            <ul id="address-suggest-list" class="address-suggest__list" hidden></ul>
+            <input type="hidden" id="delivery-lat" name="delivery_lat" value="">
+            <input type="hidden" id="delivery-lng" name="delivery_lng" value="">
           </div>
           <div class="form-field">
-            <label for="delivery-zone">Район города</label>
+            <label for="delivery-zone">Зона доставки</label>
             <select id="delivery-zone" name="delivery_zone" onchange="updateDeliveryPrice(this)" required>
-              <option value="">Выберите район</option>
+              <option value="">Выберите зону</option>
               {% for zone in delivery_zones %}
-                <option value="{{ zone.pk }}" data-price="{{ zone.price|stringformat:'d' }}">{{ zone.name }} — {{ zone.price|kzt }}</option>
+                <option value="{{ zone.pk }}" data-price="{{ zone.price|stringformat:'d' }}">{{ zone.name }} — {{ zone.delivery_time_minutes }} мин · {{ zone.price|kzt }}</option>
               {% endfor %}
             </select>
+            <span class="empty-note">Выберите адрес из подсказок — зона подставится сама. Иначе выберите вручную.</span>
           </div>
           {% if details.delivery_date or details.delivery_time or details.card_text %}
           <p class="empty-note">
@@ -89,7 +169,7 @@
         </div>
         <div class="cart-summary__row">
           <span>Доставка</span>
-          <span id="checkout-delivery-price">выберите район</span>
+          <span id="checkout-delivery-price">выберите зону</span>
         </div>
         <div class="cart-summary__row cart-summary__row--total">
           <span>Итого</span>
