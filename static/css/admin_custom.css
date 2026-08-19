@@ -1,0 +1,113 @@
+/* Фирменная тема Black Pepper Flower Bar для Django Admin.
+   Переопределяет CSS-переменные стандартной админки — тёмный фон +
+   золотой акцент вместо стандартного синего, одинаково для светлой,
+   тёмной и авто-темы (бренд сам по себе тёмный, поэтому везде одно и то же). */
+
+:root,
+html[data-theme="light"],
+html[data-theme="dark"] {
+  --primary: #2A2622;
+  --secondary: #151312;
+  --accent: #BE9554;
+  --primary-fg: #F8F6F2;
+
+  --body-fg: #ECE7E1;
+  --body-bg: #1A1817;
+  --body-quiet-color: #CEC7C0;
+  --body-medium-color: #ECE7E1;
+  --body-loud-color: #FFFFFF;
+
+  --header-color: #F8F6F2;
+  --header-branding-color: var(--accent);
+  --header-bg: var(--secondary);
+  --header-link-color: #F8F6F2;
+
+  --breadcrumbs-fg: #CEC7C0;
+  --breadcrumbs-link-fg: #F8F6F2;
+  --breadcrumbs-bg: #211E1D;
+
+  --link-fg: #D5A866;
+  --link-hover-color: #BE9554;
+  --link-selected-fg: #BE9554;
+
+  --hairline-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.15);
+
+  --error-fg: #E35F5F;
+  --message-success-bg: #1c3d1f;
+  --message-warning-bg: #4a3312;
+  --message-error-bg: #4a1414;
+
+  --darkened-bg: #151312;
+  --selected-bg: #2A2622;
+  --selected-row: #2A2420;
+
+  --button-fg: #131110;
+  --button-bg: var(--accent);
+  --button-hover-bg: #D5A866;
+  --default-button-bg: var(--accent);
+  --default-button-hover-bg: #D5A866;
+  --close-button-bg: #444441;
+  --close-button-hover-bg: #5F5E5A;
+  --delete-button-bg: #A32D2D;
+  --delete-button-hover-bg: #791F1F;
+
+  --font-family-primary: 'Inter', "Segoe UI", system-ui, Roboto, sans-serif;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Логотип шапки в стиле витрины */
+#site-name a {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Карточки статистики на главной странице админки */
+.bp-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.bp-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--darkened-bg);
+  border: 1px solid var(--hairline-color);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 16px 18px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.bp-stat-card:hover {
+  background: var(--selected-bg);
+  text-decoration: none;
+}
+.bp-stat-card__value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--body-loud-color);
+}
+.bp-stat-card__label {
+  font-size: 13px;
+  color: var(--body-quiet-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bp-stat-card--warning {
+  border-left-color: #E39F3B;
+}
+.bp-stat-card--warning .bp-stat-card__value {
+  color: #E39F3B;
+}

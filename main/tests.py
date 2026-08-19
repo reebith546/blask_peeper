@@ -168,6 +168,35 @@ class PageSmokeTests(TestCase):
         )
 
 
+class AdminDashboardTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.superuser = User.objects.create_superuser('owner', 'owner@example.com', 'pass12345')
+
+    def test_dashboard_shows_stats_for_superuser(self):
+        from reviews.models import Review
+
+        category = Category.objects.create(name='Категория')
+        Product.objects.create(
+            name='Букет', category=category, price=1000, stock=0, image=_make_test_image(),
+        )
+        Order.objects.create(
+            customer_name='Анна', customer_phone='+77070000000', delivery_address='ул. Тест, 1',
+        )
+        Review.objects.create(author_name='Клиент', text='Отзыв', status=Review.Status.DRAFT)
+        NewsletterSubscriber.objects.create(email='fan@example.com')
+
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:index'))
+
+        self.assertEqual(response.status_code, 200)
+        stats = {stat['label']: stat['value'] for stat in response.context['dashboard_stats']}
+        self.assertEqual(stats['Новых заказов'], 1)
+        self.assertEqual(stats['Товаров без остатка'], 1)
+        self.assertEqual(stats['Отзывов на модерации'], 1)
+        self.assertEqual(stats['Подписчиков за неделю'], 1)
+
+
 class SetupRolesCommandTests(TestCase):
     def test_manager_group_excludes_delivery_and_payments(self):
         call_command('setup_roles')
