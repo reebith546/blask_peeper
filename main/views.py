@@ -11,7 +11,7 @@ import requests
 from catalog.models import Category, Product
 from content.models import HomepageBlock, NewsletterSubscriber
 from delivery.models import DeliveryZone, ShopLocation
-from delivery.services import geocode_uri, resolve_delivery_zone, suggest_addresses
+from delivery.services import geocode_address, geocode_uri, resolve_delivery_zone, suggest_addresses
 from orders.models import Order, OrderItem
 from reviews.models import Review
 
@@ -197,25 +197,30 @@ def address_suggest_ajax(request):
 
     simplified = []
     for item in results:
-        if not item.get('uri'):
+        address = item.get('address', {}).get('formatted_address', '')
+        uri = item.get('uri', '')
+        # Дома геокодируются по строке адреса (у них нет uri), организации — по uri.
+        if not address and not uri:
             continue
         subtitle = item.get('subtitle', {}).get('text', '')
         title = item.get('title', {}).get('text', '')
         simplified.append({
             'label': f'{title}, {subtitle}' if subtitle else title,
-            'uri': item['uri'],
+            'address': address,
+            'uri': uri,
         })
     return JsonResponse({'results': simplified})
 
 
 def address_resolve_ajax(request):
-    """По uri подсказки — геокодирует и подбирает зону/цену. Ничего не сохраняет в БД."""
+    """По адресу/uri подсказки — геокодирует и подбирает зону/цену. Ничего не сохраняет в БД."""
+    address = request.GET.get('address', '').strip()
     uri = request.GET.get('uri', '').strip()
-    if not uri:
+    if not address and not uri:
         return JsonResponse({'zone': None}, status=400)
 
     try:
-        lat, lng = geocode_uri(uri)
+        lat, lng = geocode_address(address) if address else geocode_uri(uri)
     except requests.RequestException:
         lat = lng = None
 

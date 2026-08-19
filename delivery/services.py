@@ -64,16 +64,8 @@ def suggest_addresses(query, bias_latitude=None, bias_longitude=None):
     return response.json().get('results', [])
 
 
-def geocode_uri(uri):
-    """Координаты подсказки через Яндекс Геокодер по её uri.
-
-    Возвращает (latitude, longitude) либо (None, None), если объект не найден.
-    """
-    params = {
-        'apikey': settings.YANDEX_GEOCODER_API_KEY,
-        'format': 'json',
-        'uri': uri,
-    }
+def _geocode(params):
+    params = {'apikey': settings.YANDEX_GEOCODER_API_KEY, 'format': 'json', **params}
     response = requests.get(YANDEX_GEOCODER_URL, params=params, timeout=3)
     response.raise_for_status()
     members = response.json()['response']['GeoObjectCollection']['featureMember']
@@ -82,3 +74,22 @@ def geocode_uri(uri):
 
     longitude, latitude = members[0]['GeoObject']['Point']['pos'].split(' ')
     return float(latitude), float(longitude)
+
+
+def geocode_address(address_text):
+    """Координаты по обычному тексту адреса («Алматы, Абая 10»).
+
+    Основной способ — у подсказок Геосаджеста для домов (tags: ["house"])
+    поле uri в ответе не приходит (несмотря на документацию), только
+    у организаций. Для доставки нам нужны именно дома, так что геокодируем
+    напрямую по строке адреса.
+    """
+    return _geocode({'geocode': address_text})
+
+
+def geocode_uri(uri):
+    """Координаты подсказки через Яндекс Геокодер по её uri (для организаций).
+
+    Возвращает (latitude, longitude) либо (None, None), если объект не найден.
+    """
+    return _geocode({'uri': uri})

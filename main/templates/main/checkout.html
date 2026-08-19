@@ -55,7 +55,10 @@
       latField.value = '';
       lngField.value = '';
 
-      fetch('{% url "main:address_resolve" %}?uri=' + encodeURIComponent(item.uri))
+      var param = item.address
+        ? 'address=' + encodeURIComponent(item.address)
+        : 'uri=' + encodeURIComponent(item.uri);
+      fetch('{% url "main:address_resolve" %}?' + param)
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.lat && data.lng) {
