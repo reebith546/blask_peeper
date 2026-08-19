@@ -565,6 +565,12 @@ ul { list-style: none; }
   background: #fff;
 }
 .form-field textarea { resize: vertical; min-height: 90px; }
+.form-field select:disabled {
+  background: var(--bg-light);
+  color: var(--text-onLight-muted);
+  cursor: not-allowed;
+  border-color: rgba(26,24,23,0.12);
+}
 
 .address-suggest { position: relative; }
 .address-suggest__list {

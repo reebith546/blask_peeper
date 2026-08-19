@@ -20,7 +20,22 @@
     var latField = document.getElementById('delivery-lat');
     var lngField = document.getElementById('delivery-lng');
     var zoneSelect = document.getElementById('delivery-zone');
+    var zoneNote = document.getElementById('delivery-zone-note');
     var debounceTimer = null;
+
+    var zoneNoteDefaultText = zoneNote ? zoneNote.textContent : '';
+
+    function lockZoneToAutoDetected() {
+      if (!zoneSelect) return;
+      zoneSelect.disabled = true;
+      if (zoneNote) zoneNote.textContent = 'Зона определена автоматически по адресу. Чтобы выбрать другую — измените адрес.';
+    }
+
+    function unlockZone() {
+      if (!zoneSelect) return;
+      zoneSelect.disabled = false;
+      if (zoneNote) zoneNote.textContent = zoneNoteDefaultText;
+    }
 
     function clearSuggestions() {
       suggestList.innerHTML = '';
@@ -68,6 +83,7 @@
           if (data.zone && zoneSelect) {
             zoneSelect.value = String(data.zone.id);
             updateDeliveryPrice(zoneSelect);
+            lockZoneToAutoDetected();
           }
         });
     }
@@ -75,6 +91,7 @@
     addressInput.addEventListener('input', function () {
       latField.value = '';
       lngField.value = '';
+      unlockZone();
       var query = addressInput.value.trim();
       clearTimeout(debounceTimer);
       if (query.length < 3) {
@@ -140,7 +157,7 @@
                 <option value="{{ zone.pk }}" data-price="{{ zone.price|stringformat:'d' }}">{{ zone.name }} — {{ zone.delivery_time_minutes }} мин · {{ zone.price|kzt }}</option>
               {% endfor %}
             </select>
-            <span class="empty-note">Выберите адрес из подсказок — зона подставится сама. Иначе выберите вручную.</span>
+            <span class="empty-note" id="delivery-zone-note">Выберите адрес из подсказок — зона подставится сама. Иначе выберите вручную.</span>
           </div>
           {% if details.delivery_date or details.delivery_time or details.card_text %}
           <p class="empty-note">

@@ -141,9 +141,15 @@ def checkout(request):
                     'или не настроена точка магазина) — уточнить стоимость вручную.\n' + comment
                 ).strip()
         else:
-            # Виджет ещё не подключён (нет YANDEX_MAPS_API_KEY) — доверяем ручному выбору зоны.
+            # Координаты не пришли (виджет недоступен или клиент не выбрал
+            # подсказку) — доверяем ручному выбору зоны, но помечаем заказ,
+            # чтобы менеджер сверил адрес и стоимость перед подтверждением.
             zone_id = request.POST.get('delivery_zone')
             delivery_zone = delivery_zones.filter(pk=zone_id).first()
+            comment = (
+                'Зона доставки выбрана вручную, без проверки адреса по карте — '
+                'сверить с клиентом при подтверждении заказа.\n' + comment
+            ).strip()
 
         delivery_price = delivery_zone.price if delivery_zone else 0
 

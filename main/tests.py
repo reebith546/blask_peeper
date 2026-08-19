@@ -71,6 +71,9 @@ class CheckoutFlowTests(TestCase):
         self.zone = DeliveryZone.objects.create(
             name='Район', radius_from_km=0, radius_to_km=5, price=Decimal('1500'),
         )
+        self.far_zone = DeliveryZone.objects.create(
+            name='Дальний район', radius_from_km=5, radius_to_km=15, price=Decimal('3000'),
+        )
 
     def test_add_to_cart_shows_up_in_cart_page(self):
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 2})
@@ -138,6 +141,37 @@ class CheckoutFlowTests(TestCase):
         self.assertIsNone(order.delivery_zone)
         self.assertEqual(order.delivery_price, 0)
         self.assertIn('уточнить стоимость вручную', order.comment)
+
+    def test_manual_zone_without_coordinates_is_flagged_for_staff_review(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Анна',
+            'customer_phone': '+77070000000',
+            'delivery_address': 'ул. Тест, 1',
+            'delivery_zone': self.zone.pk,
+        })
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone, self.zone)
+        self.assertIn('без проверки адреса', order.comment)
+
+    def test_checkout_ignores_tampered_manual_zone_when_coordinates_present(self):
+        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        # Координаты соответствуют self.zone (0-5 км), но в форме подсунут id
+        # far_zone (дешевле/дороже — тут важно, что он просто другой) — сервер
+        # должен полностью проигнорировать это поле и посчитать зону сам.
+        self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Анна',
+            'customer_phone': '+77070000000',
+            'delivery_address': 'ул. Тест, 1',
+            'delivery_lat': '43.240000',
+            'delivery_lng': '76.891000',
+            'delivery_zone': self.far_zone.pk,
+        })
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone, self.zone)
+        self.assertEqual(order.delivery_price, self.zone.price)
+        self.assertNotEqual(order.delivery_zone, self.far_zone)
 
 
 class NewsletterTests(TestCase):
