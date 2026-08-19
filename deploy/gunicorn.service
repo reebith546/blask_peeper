@@ -1,0 +1,33 @@
+# systemd-юнит для gunicorn (Django-приложение Black Pepper Flower Bar).
+#
+# Установка на сервере:
+#   sudo cp deploy/gunicorn.service /etc/systemd/system/blackpepper.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now blackpepper
+#
+# Перед этим замените в этом файле:
+#   - deploy_user  — реального пользователя, под которым лежит проект
+#   - /srv/blackpepper — реальный путь к проекту на сервере
+
+[Unit]
+Description=Gunicorn — Black Pepper Flower Bar (Django)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=deploy_user
+Group=www-data
+WorkingDirectory=/srv/blackpepper
+RuntimeDirectory=blackpepper
+ExecStart=/srv/blackpepper/.venv/bin/gunicorn \
+    --workers 3 \
+    --bind unix:/run/blackpepper/gunicorn.sock \
+    --access-logfile - \
+    --error-logfile - \
+    core.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

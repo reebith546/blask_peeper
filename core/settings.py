@@ -152,3 +152,19 @@ TIPTOP_API_SECRET = env('TIPTOP_API_SECRET', default='')
 # варианта; это два разных биллинг-продукта Яндекса, поэтому два ключа.
 YANDEX_SUGGEST_API_KEY = env('YANDEX_SUGGEST_API_KEY', default='')
 YANDEX_GEOCODER_API_KEY = env('YANDEX_GEOCODER_API_KEY', default='')
+
+
+# Продакшен-настройки безопасности. Активны только при DEBUG=False, чтобы не
+# мешать локальной разработке (там нет ни HTTPS, ни nginx перед Django).
+if not DEBUG:
+    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # nginx стоит перед Django и сам терминирует HTTPS, до gunicorn запросы
+    # доходят обычным HTTP — без этого заголовка Django решит, что все
+    # запросы небезопасные, и уйдёт в бесконечный редирект.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
