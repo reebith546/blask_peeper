@@ -24,7 +24,7 @@
           <div class="cart-item__qty">
             <form action="{% url 'main:cart_update' entry.product.pk %}" method="post">
               {% csrf_token %}
-              <input class="qty-input" type="number" name="quantity" min="1" max="{{ entry.product.stock }}" value="{{ entry.quantity }}">
+              <input class="qty-input" type="number" name="quantity" min="1" max="20" value="{{ entry.quantity }}">
               <button class="btn btn--outline-light" type="submit">Обновить</button>
             </form>
             <form action="{% url 'main:cart_remove' entry.product.pk %}" method="post">

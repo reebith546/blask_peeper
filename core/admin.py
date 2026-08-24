@@ -26,8 +26,8 @@ def _dashboard_stats(request):
         },
         {
             'label': 'Товаров без остатка',
-            'value': Product.objects.filter(stock=0, is_active=True).count(),
-            'url': reverse('admin:catalog_product_changelist') + '?stock__exact=0',
+            'value': Product.objects.filter(in_stock=False, is_active=True).count(),
+            'url': reverse('admin:catalog_product_changelist') + '?in_stock__exact=0',
             'tone': 'warning',
         },
         {

@@ -15,19 +15,62 @@
 <section class="section">
   <div class="container">
 
-    <div class="catalog-filters">
-      <a href="{% url 'catalog:product_list' %}" class="{% if not current_category %}is-active{% endif %}">Все</a>
-      {% for category in categories %}
-        <a href="{% url 'catalog:product_list_by_category' category.slug %}" class="{% if current_category and current_category.pk == category.pk %}is-active{% endif %}">{{ category.name }}</a>
-      {% endfor %}
+    <div class="catalog-toolbar">
+      <div class="catalog-filters">
+        <a href="{% url 'catalog:product_list' %}" class="{% if not current_category %}is-active{% endif %}">Все</a>
+        {% for category in categories %}
+          <a href="{% url 'catalog:product_list_by_category' category.slug %}" class="{% if current_category and current_category.pk == category.pk %}is-active{% endif %}">{{ category.name }}</a>
+        {% endfor %}
+      </div>
+      <button type="button" class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="catalog-filter-panel">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Фильтры и сортировка
+        {% if current_sort or min_price or max_price %}<span class="filter-toggle__dot"></span>{% endif %}
+      </button>
     </div>
 
+    <form method="get" class="catalog-filter-panel" id="catalog-filter-panel">
+      <div class="catalog-filter-panel__group">
+        <label>Цена, ₸</label>
+        <div class="catalog-filter-panel__price-range">
+          <input type="number" name="min_price" min="0" step="500" placeholder="От" value="{{ min_price|default_if_none:'' }}">
+          <span>—</span>
+          <input type="number" name="max_price" min="0" step="500" placeholder="До" value="{{ max_price|default_if_none:'' }}">
+        </div>
+      </div>
+      <div class="catalog-filter-panel__group">
+        <label for="sort-select">Сортировка</label>
+        <select id="sort-select" name="sort">
+          <option value="" {% if not current_sort %}selected{% endif %}>По умолчанию</option>
+          <option value="price_asc" {% if current_sort == "price_asc" %}selected{% endif %}>Сначала дешевле</option>
+          <option value="price_desc" {% if current_sort == "price_desc" %}selected{% endif %}>Сначала дороже</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn--outline-light catalog-filter-panel__apply">Применить</button>
+    </form>
+
     {% if products %}
-    <div class="bouquets-grid">
-      {% for product in products %}
-        {% include "catalog/includes/product_card.html" %}
-      {% endfor %}
-    </div>
+      {% if current_category %}
+      <div class="carousel">
+        <div class="carousel__track bouquets-carousel__track">
+          {% for product in products %}
+            {% include "catalog/includes/product_card.html" with lightbox_group="catalog" %}
+          {% endfor %}
+        </div>
+        <button type="button" class="carousel-arrow carousel-arrow--prev" data-carousel-prev aria-label="Предыдущие букеты">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="carousel-arrow carousel-arrow--next" data-carousel-next aria-label="Следующие букеты">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      {% else %}
+      <div class="bouquets-grid">
+        {% for product in products %}
+          {% include "catalog/includes/product_card.html" %}
+        {% endfor %}
+      </div>
+      {% endif %}
     {% else %}
     <p class="empty-note">В этой категории пока нет товаров.</p>
     {% endif %}

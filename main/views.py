@@ -45,7 +45,7 @@ def home(request):
         ),
         'popular_products': (
             Product.objects
-            .filter(is_popular=True, is_active=True)
+            .filter(is_popular=True, is_active=True, in_stock=True)
             .select_related('category')[:4]
         ),
         'categories': Category.objects.filter(is_active=True).order_by('order')[:6],
@@ -70,7 +70,7 @@ def cart_detail(request):
 @require_POST
 def cart_add(request, product_id):
     cart = Cart(request)
-    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    product = get_object_or_404(Product, pk=product_id, is_active=True, in_stock=True)
     try:
         quantity = int(request.POST.get('quantity', 1))
     except ValueError:

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Black Pepper Flower Bar — Цветы с характером{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue:wght@100;200;300;400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
 {% block extra_head %}{% endblock %}
 </head>
@@ -14,8 +14,10 @@
 
 <header class="site-header">
   <div class="container site-header__inner">
-    <a href="{% url 'main:home' %}" class="logo">Black <span>Pepper</span></a>
-    <nav class="nav">
+    <a href="{% url 'main:home' %}" class="logo">
+      <img src="{% static 'images/logo-white.png' %}" alt="Black Pepper Flower Bar" class="logo__image">
+    </a>
+    <nav class="nav" id="site-nav">
       <a href="{% url 'main:home' %}">Главная</a>
       <a href="{% url 'catalog:product_list' %}">Каталог</a>
       <a href="{% url 'main:home' %}#categories">Коллекции</a>
@@ -28,6 +30,9 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8"/><path d="M5 8h14l-1 11H6L5 8Z" stroke="currentColor" stroke-width="1.8"/></svg>
         {% if cart|length > 0 %}<span class="header-icons__count">{{ cart|length }}</span>{% endif %}
       </a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Меню" aria-expanded="false" aria-controls="site-nav">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
     </div>
   </div>
 </header>
@@ -48,7 +53,7 @@
 <footer class="site-footer" id="footer">
   <div class="container footer-main">
     <div>
-      <h3 class="footer-brand__title">Цветы с характером</h3>
+      <img src="{% static 'images/logo-white.png' %}" alt="Black Pepper Flower Bar" class="footer-brand__logo">
       <p class="footer-brand__text">
         г. Алматы, ул. Кабанбай батыра, 47<br>
         +7 (706) 664-41-44<br>
@@ -68,11 +73,12 @@
       <p>Пн–Вс: 09:00–21:00</p>
       <p>Доставка: ежедневно</p>
       <div class="footer-socials">
-        <a href="https://www.instagram.com/blackpepperflowerbar" target="_blank" rel="noopener">
+        <a href="https://www.instagram.com/blackpepperflowerbar" target="_blank" rel="noopener" aria-label="Instagram">
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
         </a>
-        <svg viewBox="0 0 24 24" fill="none"><path d="M22 5.9c-.7.3-1.5.6-2.3.7.8-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 0 0-7 3.7A11.6 11.6 0 0 1 3.4 4.6a4.1 4.1 0 0 0 1.3 5.5c-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.6 3.3 4a4.1 4.1 0 0 1-1.9.1 4.1 4.1 0 0 0 3.8 2.8A8.2 8.2 0 0 1 2 18.4a11.6 11.6 0 0 0 6.3 1.8c7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-        <svg viewBox="0 0 24 24" fill="none"><path d="M21 4 3 11.5l6 2m12-9.5-3 15-6-4.5m9-10.5-9 10.5m0 0L9 20l0-6.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        <a href="https://wa.me/77066644144" target="_blank" rel="noopener" aria-label="WhatsApp">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Z" stroke="currentColor" stroke-width="1.6"/><path d="M8.3 8.6c.2-.5.5-.5.7-.5h.5c.2 0 .4 0 .6.4l.7 1.7c.1.2 0 .4-.1.5l-.5.5c-.1.1-.1.3 0 .5.3.6 1.5 2 2.6 2.5.2.1.4 0 .5-.1l.5-.6c.1-.2.3-.2.5-.1l1.6.8c.2.1.3.3.3.5-.1.6-.5 1.3-1.1 1.5-1 .4-2.2.2-3.9-.7-1.6-.9-2.8-2.2-3.3-3.4-.4-1-.5-2.2-.1-3z" fill="currentColor"/></svg>
+        </a>
       </div>
     </div>
     <div>
@@ -93,5 +99,237 @@
   </div>
 </footer>
 
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button type="button" class="lightbox__close" id="lightbox-close" aria-label="Закрыть">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <button type="button" class="lightbox__nav lightbox__nav--prev" id="lightbox-prev" aria-label="Предыдущее фото">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button type="button" class="lightbox__nav lightbox__nav--next" id="lightbox-next" aria-label="Следующее фото">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="lightbox__viewport" id="lightbox-viewport">
+    <img class="lightbox__img" id="lightbox-img" src="" alt="">
+  </div>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var nav = document.getElementById('site-nav');
+    if (!toggle || !nav) return;
+    toggle.addEventListener('click', function () {
+      var isOpen = nav.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+  })();
+
+  // Панель "Фильтры и сортировка" в каталоге — сворачивается на мобильных.
+  (function () {
+    var toggle = document.getElementById('filter-toggle');
+    var panel = document.getElementById('catalog-filter-panel');
+    if (!toggle || !panel) return;
+    toggle.addEventListener('click', function () {
+      var isOpen = panel.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+  })();
+</script>
+
+<script>
+  // Стрелки карусели — прокрутка трека на ширину видимой области.
+  (function () {
+    document.querySelectorAll('.carousel').forEach(function (carousel) {
+      var track = carousel.querySelector('.carousel__track');
+      var prev = carousel.querySelector('[data-carousel-prev]');
+      var next = carousel.querySelector('[data-carousel-next]');
+      if (!track) return;
+      if (prev) prev.addEventListener('click', function () {
+        track.scrollBy({ left: -track.clientWidth * 0.85, behavior: 'smooth' });
+      });
+      if (next) next.addEventListener('click', function () {
+        track.scrollBy({ left: track.clientWidth * 0.85, behavior: 'smooth' });
+      });
+    });
+  })();
+
+  // Лайтбокс-галерея: открытие по клику на фото, свайп между фото,
+  // приближение щипком (pinch) на телефоне и колёсиком/двойным кликом на десктопе —
+  // похоже на системную галерею фото.
+  (function () {
+    var lightbox = document.getElementById('lightbox');
+    var viewport = document.getElementById('lightbox-viewport');
+    var imgEl = document.getElementById('lightbox-img');
+    var closeBtn = document.getElementById('lightbox-close');
+    var prevBtn = document.getElementById('lightbox-prev');
+    var nextBtn = document.getElementById('lightbox-next');
+    if (!lightbox || !imgEl) return;
+
+    var groups = {};
+    document.querySelectorAll('.js-lightbox').forEach(function (el) {
+      var group = el.dataset.lightboxGroup || 'default';
+      if (!groups[group]) groups[group] = [];
+      groups[group].push({ src: el.dataset.lightboxSrc, alt: el.dataset.lightboxAlt || '' });
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        openLightbox(group, groups[group].length - 1);
+      });
+    });
+
+    var currentGroup = null, currentIndex = 0;
+    var scale = 1, originX = 0, originY = 0;
+    var isPanning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
+    var pinchStartDist = 0, pinchStartScale = 1;
+    var swipeStartX = 0, swipeStartY = 0, swiping = false;
+    var lastTapTime = 0;
+
+    function openLightbox(group, index) {
+      currentGroup = group;
+      currentIndex = index;
+      renderImage();
+      lightbox.classList.add('is-open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      lightbox.classList.remove('is-open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      resetZoom();
+    }
+    function renderImage() {
+      var item = groups[currentGroup][currentIndex];
+      if (!item) return;
+      imgEl.src = item.src;
+      imgEl.alt = item.alt;
+      resetZoom();
+    }
+    function showNext() {
+      if (!currentGroup) return;
+      currentIndex = (currentIndex + 1) % groups[currentGroup].length;
+      renderImage();
+    }
+    function showPrev() {
+      if (!currentGroup) return;
+      currentIndex = (currentIndex - 1 + groups[currentGroup].length) % groups[currentGroup].length;
+      renderImage();
+    }
+    function resetZoom() {
+      scale = 1; originX = 0; originY = 0;
+      applyTransform();
+    }
+    function applyTransform() {
+      imgEl.style.transform = 'translate(' + originX + 'px, ' + originY + 'px) scale(' + scale + ')';
+    }
+    function clampScale(s) { return Math.min(Math.max(s, 1), 4); }
+
+    closeBtn.addEventListener('click', closeLightbox);
+    nextBtn.addEventListener('click', showNext);
+    prevBtn.addEventListener('click', showPrev);
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!lightbox.classList.contains('is-open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') showNext();
+      if (e.key === 'ArrowLeft') showPrev();
+    });
+
+    // Колёсико мыши — зум на десктопе.
+    viewport.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      scale = clampScale(scale - e.deltaY * 0.0015);
+      if (scale === 1) { originX = 0; originY = 0; }
+      applyTransform();
+    }, { passive: false });
+
+    // Двойной клик / двойной тап — переключение зума.
+    function toggleZoomAt(clientX, clientY) {
+      if (scale > 1) {
+        resetZoom();
+      } else {
+        scale = 2.5;
+        var rect = viewport.getBoundingClientRect();
+        originX = (rect.width / 2 - (clientX - rect.left)) * (scale - 1) / scale;
+        originY = (rect.height / 2 - (clientY - rect.top)) * (scale - 1) / scale;
+        applyTransform();
+      }
+    }
+    viewport.addEventListener('dblclick', function (e) { toggleZoomAt(e.clientX, e.clientY); });
+
+    // Перетаскивание мышью, когда приближено.
+    viewport.addEventListener('mousedown', function (e) {
+      if (scale <= 1) return;
+      isPanning = true;
+      panStartX = e.clientX; panStartY = e.clientY;
+      panOriginX = originX; panOriginY = originY;
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (!isPanning) return;
+      originX = panOriginX + (e.clientX - panStartX);
+      originY = panOriginY + (e.clientY - panStartY);
+      applyTransform();
+    });
+    window.addEventListener('mouseup', function () { isPanning = false; });
+
+    // Touch: pinch-zoom, перетаскивание приближенного фото, свайп между фото.
+    function touchDist(touches) {
+      var dx = touches[0].clientX - touches[1].clientX;
+      var dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    viewport.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        pinchStartDist = touchDist(e.touches);
+        pinchStartScale = scale;
+        swiping = false;
+      } else if (e.touches.length === 1) {
+        var now = Date.now();
+        if (now - lastTapTime < 300) {
+          toggleZoomAt(e.touches[0].clientX, e.touches[0].clientY);
+          lastTapTime = 0;
+          return;
+        }
+        lastTapTime = now;
+        if (scale > 1) {
+          isPanning = true;
+          panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+          panOriginX = originX; panOriginY = originY;
+        } else {
+          swiping = true;
+          swipeStartX = e.touches[0].clientX;
+          swipeStartY = e.touches[0].clientY;
+        }
+      }
+    }, { passive: true });
+    viewport.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        var dist = touchDist(e.touches);
+        scale = clampScale(pinchStartScale * (dist / pinchStartDist));
+        applyTransform();
+      } else if (e.touches.length === 1 && isPanning) {
+        e.preventDefault();
+        originX = panOriginX + (e.touches[0].clientX - panStartX);
+        originY = panOriginY + (e.touches[0].clientY - panStartY);
+        applyTransform();
+      }
+    }, { passive: false });
+    viewport.addEventListener('touchend', function (e) {
+      isPanning = false;
+      if (scale < 1.05) resetZoom();
+      if (swiping && e.changedTouches.length === 1) {
+        var dx = e.changedTouches[0].clientX - swipeStartX;
+        var dy = e.changedTouches[0].clientY - swipeStartY;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) showNext(); else showPrev();
+        }
+      }
+      swiping = false;
+    });
+  })();
+</script>
 </body>
 </html>

@@ -4,6 +4,7 @@ from catalog.models import Product
 
 CART_SESSION_KEY = 'cart'
 DETAILS_SESSION_KEY = 'cart_details'
+MAX_QUANTITY_PER_ITEM = 20
 
 
 class Cart:
@@ -20,8 +21,7 @@ class Cart:
         product_id = str(product.pk)
         current = self.cart.get(product_id, {}).get('quantity', 0)
         quantity = max(1, current + quantity)
-        if product.stock:
-            quantity = min(quantity, product.stock)
+        quantity = min(quantity, MAX_QUANTITY_PER_ITEM)
         self.cart[product_id] = {'quantity': quantity}
         self._save()
 
@@ -30,8 +30,7 @@ class Cart:
         if quantity < 1:
             self.remove(product)
             return
-        if product.stock:
-            quantity = min(quantity, product.stock)
+        quantity = min(quantity, MAX_QUANTITY_PER_ITEM)
         self.cart[product_id] = {'quantity': quantity}
         self._save()
 

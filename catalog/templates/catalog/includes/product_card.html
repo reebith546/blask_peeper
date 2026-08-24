@@ -1,7 +1,7 @@
 {% load shop_extras %}
 <div class="bouquet-card">
   <div class="bouquet-card__image-wrap">
-    <a href="{% url 'catalog:product_detail' product.slug %}">
+    <a href="{% url 'catalog:product_detail' product.slug %}"{% if lightbox_group %} class="js-lightbox" data-lightbox-group="{{ lightbox_group }}" data-lightbox-src="{{ product.image.url }}" data-lightbox-alt="{{ product.name }}"{% endif %}>
       <img class="bouquet-card__image" src="{{ product.image.url }}" alt="{{ product.name }}">
     </a>
     {% if product.in_stock %}
@@ -16,7 +16,12 @@
   </div>
   <div class="bouquet-card__body">
     <h3 class="bouquet-card__title"><a href="{% url 'catalog:product_detail' product.slug %}">{{ product.name }}</a></h3>
-    <p class="bouquet-card__composition">{{ product.composition|default:"" }}</p>
+    {% if product.composition_lines %}
+      <ul class="bouquet-card__composition">
+        {% for line in product.composition_lines|slice:":3" %}<li>{{ line }}</li>{% endfor %}
+        {% if product.composition_lines|length > 3 %}<li>…</li>{% endif %}
+      </ul>
+    {% endif %}
     <div class="bouquet-card__footer">
       <span class="bouquet-card__price">{{ product.price|kzt }}</span>
       {% if product.in_stock %}

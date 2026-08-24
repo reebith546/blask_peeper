@@ -55,7 +55,7 @@ class Command(BaseCommand):
                     'composition': composition,
                     'price': price,
                     'is_popular': is_popular,
-                    'stock': 10,
+                    'in_stock': True,
                 },
             )
             if created or not product.image:

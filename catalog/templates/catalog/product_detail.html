@@ -25,8 +25,10 @@
       <h1 class="product-detail__title">{{ product.name }}</h1>
       <div class="product-detail__price">{{ product.price|kzt }}</div>
 
-      {% if product.composition %}
-        <p class="product-detail__composition">{{ product.composition }}</p>
+      {% if product.composition_lines %}
+        <ul class="product-detail__composition">
+          {% for line in product.composition_lines %}<li>{{ line }}</li>{% endfor %}
+        </ul>
       {% endif %}
 
       {% if product.description %}
@@ -41,7 +43,7 @@
 
       <form class="product-detail__actions" action="{% url 'main:cart_add' product.pk %}" method="post">
         {% csrf_token %}
-        <input class="qty-input" type="number" name="quantity" min="1" max="{{ product.stock }}" value="1" {% if not product.in_stock %}disabled{% endif %}>
+        <input class="qty-input" type="number" name="quantity" min="1" max="20" value="1" {% if not product.in_stock %}disabled{% endif %}>
         <button class="btn btn--primary" type="submit" {% if not product.in_stock %}disabled{% endif %}>В корзину</button>
       </form>
     </div>

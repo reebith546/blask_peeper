@@ -38,7 +38,7 @@ class Product(models.Model):
     composition = models.TextField('Состав', blank=True)
     description = models.TextField('Описание', blank=True)
     image = models.ImageField('Главное фото', upload_to='products/')
-    stock = models.PositiveIntegerField('Остаток, шт.', default=0)
+    in_stock = models.BooleanField('В наличии', default=True)
     is_popular = models.BooleanField('Популярное', default=False)
     is_active = models.BooleanField('Активен (виден в каталоге)', default=True)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
@@ -58,8 +58,9 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     @property
-    def in_stock(self):
-        return self.stock > 0
+    def composition_lines(self):
+        """Состав построчно — раньше хранился и выводился строкой через запятую."""
+        return [line.strip() for line in self.composition.split(',') if line.strip()]
 
 
 class ProductImage(models.Model):

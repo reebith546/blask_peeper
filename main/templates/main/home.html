@@ -22,14 +22,6 @@
         <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-dark">Каталог</a>
       </div>
     </div>
-    <div class="hero__image-wrap">
-      {% if hero_block and hero_block.image %}
-        <img class="hero__image" src="{{ hero_block.image.url }}" alt="{{ hero_block.title }}">
-      {% else %}
-        <div class="hero__image" style="background: var(--bg-darker);"></div>
-      {% endif %}
-      <div class="hero__badge"><strong>200+</strong>букетов собрано в этом месяце</div>
-    </div>
   </div>
 </section>
 
@@ -40,10 +32,18 @@
       <h2 class="section-title">Популярные сборки</h2>
       <a href="{% url 'catalog:product_list' %}" class="section-link">Смотреть все →</a>
     </div>
-    <div class="bouquets-grid">
-      {% for product in popular_products %}
-        {% include "catalog/includes/product_card.html" %}
-      {% endfor %}
+    <div class="carousel">
+      <div class="carousel__track bouquets-carousel__track">
+        {% for product in popular_products %}
+          {% include "catalog/includes/product_card.html" with lightbox_group="popular" %}
+        {% endfor %}
+      </div>
+      <button type="button" class="carousel-arrow carousel-arrow--prev" data-carousel-prev aria-label="Предыдущие букеты">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="carousel-arrow carousel-arrow--next" data-carousel-next aria-label="Следующие букеты">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
   </div>
 </section>
