@@ -48,7 +48,7 @@ def home(request):
             .filter(is_popular=True, is_active=True, in_stock=True)
             .select_related('category')[:4]
         ),
-        'categories': Category.objects.filter(is_active=True).order_by('order')[:6],
+        'categories': Category.objects.filter(is_active=True, show_on_homepage=True).order_by('order'),
         'instagram_blocks': (
             HomepageBlock.objects
             .filter(block_type=HomepageBlock.BlockType.INSTAGRAM, is_active=True)

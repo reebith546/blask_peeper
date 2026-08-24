@@ -10,6 +10,7 @@ class Category(models.Model):
     image = models.ImageField('Изображение', upload_to='categories/', blank=True, null=True)
     order = models.PositiveIntegerField('Порядок сортировки', default=0)
     is_active = models.BooleanField('Активна', default=True)
+    show_on_homepage = models.BooleanField('Показывать на главной', default=True)
 
     class Meta:
         verbose_name = 'Категория'
