@@ -29,7 +29,7 @@
             </form>
             <form action="{% url 'main:cart_remove' entry.product.pk %}" method="post">
               {% csrf_token %}
-              <button class="section-link" type="submit">Удалить</button>
+              <button class="btn btn--outline-light" type="submit">Удалить</button>
             </form>
           </div>
         </div>

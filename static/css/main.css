@@ -803,13 +803,6 @@ ul { list-style: none; }
 .checkout-section { margin-bottom: 40px; }
 .checkout-section__title { font-family: var(--display); font-size: 26px; font-weight: 500; margin-bottom: 20px; }
 .checkout-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.payment-widget-placeholder {
-  border: 1px dashed rgba(26,24,23,0.25);
-  padding: 32px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-onLight-muted);
-}
 
 /* ============ FOOTER ============ */
 .site-footer { background: #151312; color: var(--text-onDark); }
@@ -819,7 +812,6 @@ ul { list-style: none; }
   grid-template-columns: 1.3fr 1fr 1fr 1fr;
   gap: 40px;
 }
-.footer-brand__logo { height: 44px; width: auto; margin-bottom: 20px; }
 .footer-brand__text { font-size: 15px; line-height: 1.9; color: var(--text-onDark-muted); }
 .footer-heading {
   font-size: 12px;

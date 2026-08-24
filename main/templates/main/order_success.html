@@ -10,8 +10,8 @@
     <span class="eyebrow">Спасибо!</span>
     <h1 class="section-title">Заказ №{{ order.pk }} принят</h1>
     <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
-      Мы свяжемся с вами по телефону {{ order.customer_phone }} для подтверждения деталей.
-      Итоговая сумма заказа — {{ order.total_price|kzt }}.
+      Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
+      деталей и оплаты. Итоговая сумма заказа — {{ order.total_price|kzt }}.
     </p>
     <a href="{% url 'catalog:product_list' %}" class="btn btn--primary">Вернуться в каталог</a>
   </div>
