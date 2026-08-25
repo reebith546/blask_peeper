@@ -602,6 +602,25 @@ ul { list-style: none; }
 .instagram { background: var(--bg-light); text-align: center; }
 .instagram .section-head { justify-content: center; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
 .instagram .section-title { margin-top: 8px; }
+.instagram-handle {
+  display: inline-block;
+  position: relative;
+  transition: color 0.3s ease;
+}
+.instagram-handle::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+.instagram-handle:hover { color: var(--text-onLight-muted); }
+.instagram-handle:hover::after { transform: scaleX(1); transform-origin: left; }
 .instagram-sub { font-size: 15px; color: var(--text-onLight-muted); }
 .instagram-grid {
   display: grid;
