@@ -190,6 +190,7 @@ ul { list-style: none; }
   line-height: 1.75;
   color: var(--text-onDark-muted);
   max-width: 620px;
+  margin-top: 24px;
   margin-bottom: 48px;
 }
 .hero__buttons { display: flex; gap: 18px; }

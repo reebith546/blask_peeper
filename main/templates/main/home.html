@@ -7,11 +7,6 @@
   <div class="container hero__grid">
     <div>
       <span class="eyebrow">Авторская флористика • Алматы</span>
-      {% if hero_block and hero_block.title %}
-        <h1 class="hero__title">{{ hero_block.title|linebreaksbr }}</h1>
-      {% else %}
-        <h1 class="hero__title">Цветы с<br>характером.</h1>
-      {% endif %}
       {% if hero_block and hero_block.subtitle %}
         <p class="hero__description">{{ hero_block.subtitle }}</p>
       {% else %}
