@@ -70,7 +70,7 @@
     </div>
     <div class="footer-hours">
       <span class="footer-heading">Часы работы</span>
-      <p>Пн–Вс: 09:00–21:00</p>
+      <p>Пн–Вс: 11:00–21:00</p>
       <p>Доставка: ежедневно</p>
       <div class="footer-socials">
         <a href="https://www.instagram.com/blackpepperflowerbar" target="_blank" rel="noopener" aria-label="Instagram">
@@ -81,20 +81,10 @@
         </a>
       </div>
     </div>
-    <div>
-      <span class="footer-heading">Подписка</span>
-      <p class="footer-form-text">Новости и предложения от студии.</p>
-      <form class="footer-form" action="{% url 'main:newsletter_subscribe' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.path }}">
-        <input type="email" name="email" placeholder="Email" required>
-        <button type="submit">Отправить →</button>
-      </form>
-    </div>
   </div>
   <div class="footer-bottom">
     <div class="container">
-      <p>© 2026 Цветы с характером. Все права защищены.</p>
+      <p>© 2026 BLACKPEPPERFLOWERBAR. Все права защищены.</p>
     </div>
   </div>
 </footer>

@@ -1,7 +1,5 @@
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -9,7 +7,7 @@ from django.views.decorators.http import require_POST
 import requests
 
 from catalog.models import Category, Product
-from content.models import HomepageBlock, NewsletterSubscriber
+from content.models import HomepageBlock
 from delivery.models import DeliveryZone, ShopLocation
 from delivery.services import geocode_address, geocode_uri, resolve_delivery_zone, suggest_addresses
 from orders.models import Order, OrderItem
@@ -20,19 +18,6 @@ from .cart import Cart
 
 def about(request):
     return render(request, 'main/about.html')
-
-
-@require_POST
-def newsletter_subscribe(request):
-    email = request.POST.get('email', '').strip()
-    try:
-        validate_email(email)
-    except ValidationError:
-        messages.error(request, 'Введите корректный email')
-    else:
-        NewsletterSubscriber.objects.get_or_create(email=email)
-        messages.success(request, 'Вы подписаны на новости')
-    return redirect(request.POST.get('next') or 'main:home')
 
 
 def home(request):

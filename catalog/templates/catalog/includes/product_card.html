@@ -15,12 +15,14 @@
     {% endif %}
   </div>
   <div class="bouquet-card__body">
-    <h3 class="bouquet-card__title"><a href="{% url 'catalog:product_detail' product.slug %}">{{ product.name }}</a></h3>
-    {% if product.composition_lines %}
-      <ul class="bouquet-card__composition">
-        {% for line in product.composition_lines|slice:":3" %}<li>{{ line }}</li>{% endfor %}
-        {% if product.composition_lines|length > 3 %}<li>…</li>{% endif %}
-      </ul>
+    {% if not minimal %}
+      <h3 class="bouquet-card__title"><a href="{% url 'catalog:product_detail' product.slug %}">{{ product.name }}</a></h3>
+      {% if product.composition_lines %}
+        <ul class="bouquet-card__composition">
+          {% for line in product.composition_lines|slice:":3" %}<li>{{ line }}</li>{% endfor %}
+          {% if product.composition_lines|length > 3 %}<li>…</li>{% endif %}
+        </ul>
+      {% endif %}
     {% endif %}
     <div class="bouquet-card__footer">
       <span class="bouquet-card__price">{{ product.price|kzt }}</span>

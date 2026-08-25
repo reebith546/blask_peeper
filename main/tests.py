@@ -174,16 +174,6 @@ class CheckoutFlowTests(TestCase):
         self.assertNotEqual(order.delivery_zone, self.far_zone)
 
 
-class NewsletterTests(TestCase):
-    def test_valid_email_creates_subscriber(self):
-        self.client.post(reverse('main:newsletter_subscribe'), {'email': 'test@example.com'})
-        self.assertEqual(NewsletterSubscriber.objects.count(), 1)
-
-    def test_invalid_email_is_rejected(self):
-        self.client.post(reverse('main:newsletter_subscribe'), {'email': 'not-an-email'})
-        self.assertEqual(NewsletterSubscriber.objects.count(), 0)
-
-
 class PageSmokeTests(TestCase):
     def test_home_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:home')).status_code, 200)

@@ -816,7 +816,7 @@ ul { list-style: none; }
 .footer-main {
   padding: 80px 0 56px;
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  grid-template-columns: 1.3fr 1fr 1fr;
   gap: 40px;
 }
 .footer-brand__text { font-size: 15px; line-height: 1.9; color: var(--text-onDark-muted); }
@@ -835,29 +835,6 @@ ul { list-style: none; }
 .footer-socials { display: flex; gap: 18px; margin-top: 22px; }
 .footer-socials svg { width: 18px; height: 18px; color: var(--text-onDark-soft); cursor: pointer; transition: color 0.3s ease; }
 .footer-socials svg:hover { color: var(--accent); }
-.footer-form-text { font-size: 15px; color: var(--text-onDark-muted); margin-bottom: 20px; }
-.footer-form { display: flex; gap: 8px; }
-.footer-form input {
-  flex: 1;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: var(--sans);
-}
-.footer-form input::placeholder { color: #8A8580; }
-.footer-form button {
-  background: var(--accent);
-  color: var(--on-accent);
-  border: none;
-  padding: 0 20px;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.3s ease;
-}
-.footer-form button:hover { background: var(--accent-hover); }
 .footer-bottom {
   border-top: 1px solid rgba(255,255,255,0.08);
   padding: 24px 0;
@@ -907,7 +884,6 @@ ul { list-style: none; }
   .bouquets-grid, .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
   .advantage { border-left: none; padding-left: 0; border-top: 1px solid rgba(26,24,23,0.12); padding-top: 20px; }
   .instagram-grid { grid-template-columns: repeat(2, 1fr); }
-  .footer-form { flex-direction: column; }
   .checkout-row { grid-template-columns: 1fr; }
   .cart-item { grid-template-columns: 72px 1fr; row-gap: 14px; }
   .cart-item__qty { grid-column: 1 / -1; width: 100%; flex-wrap: wrap; }
