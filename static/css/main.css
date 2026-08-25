@@ -373,7 +373,12 @@ ul { list-style: none; }
   .bouquet-card__quickadd { opacity: 1; transform: translateY(0); }
 }
 .bouquet-card__quickadd svg { width: 18px; height: 18px; color: var(--bg-dark); }
-.bouquet-card__body { padding: 20px 4px 0; }
+.bouquet-card__body {
+  padding: 20px 4px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .bouquet-card__title {
   font-family: var(--display);
   font-size: 22px;
@@ -391,6 +396,8 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;
+  padding-top: 14px;
 }
 .bouquet-card__price { font-size: 17px; font-weight: 600; }
 .bouquet-card__cart-btn {
