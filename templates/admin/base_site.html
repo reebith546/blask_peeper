@@ -13,11 +13,12 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1817'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='14' fill='%23BE9554' text-anchor='middle'%3EBP%3C/text%3E%3C/svg%3E">
 {% endblock %}
 
+{% comment %}
+  Бренд Black Pepper — тёмный, светлой темы админки нет. Штатный переключатель
+  темы скрыт в admin_custom.css (.theme-toggle), поэтому здесь его не добавляем.
+{% endcomment %}
 {% block branding %}
 <div id="site-name"><a href="{% url 'admin:index' %}">Black <span style="color: var(--accent);">Pepper</span> Admin</a></div>
-{% if user.is_anonymous %}
-  {% include "admin/color_theme_toggle.html" %}
-{% endif %}
 {% endblock %}
 
 {% block nav-global %}{% endblock %}

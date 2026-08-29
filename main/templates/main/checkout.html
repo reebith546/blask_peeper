@@ -135,8 +135,8 @@
             </div>
           </div>
           <div class="form-field">
-            <label for="customer-email">Email (необязательно)</label>
-            <input type="email" id="customer-email" name="customer_email">
+            <label for="customer-email">Email{% if payments_enabled %} (для чека об оплате){% else %} (необязательно){% endif %}</label>
+            <input type="email" id="customer-email" name="customer_email"{% if payments_enabled %} required{% endif %}>
           </div>
         </div>
 
@@ -188,6 +188,15 @@
         <div class="cart-summary__row cart-summary__row--total">
           <span>Итого</span>
           <span id="checkout-total-price">{{ cart.get_total_price|kzt }}</span>
+        </div>
+        <div class="cart-summary__consent">
+          <input type="checkbox" id="legal-consent" name="legal_consent" value="yes" required>
+          <label for="legal-consent">
+            Я принимаю условия
+            <a href="{% url 'main:offer' %}" target="_blank" rel="noopener">публичной оферты</a>
+            и даю согласие на обработку персональных данных в соответствии с
+            <a href="{% url 'main:privacy_policy' %}" target="_blank" rel="noopener">политикой конфиденциальности</a>.
+          </label>
         </div>
         <button type="submit" class="btn btn--primary">Оформить заказ</button>
       </aside>

@@ -8,7 +8,6 @@ from django.urls import reverse
 from PIL import Image
 
 from catalog.models import Category, Product
-from content.models import NewsletterSubscriber
 from delivery.models import DeliveryZone, ShopLocation
 from orders.models import Order
 
@@ -85,6 +84,27 @@ class CheckoutFlowTests(TestCase):
         response = self.client.get(reverse('main:checkout'))
         self.assertRedirects(response, reverse('catalog:product_list'))
 
+    def test_checkout_shows_legal_consent_checkbox(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        response = self.client.get(reverse('main:checkout'))
+        self.assertContains(response, 'name="legal_consent" value="yes" required')
+        self.assertContains(response, reverse('main:offer'))
+        self.assertContains(response, reverse('main:privacy_policy'))
+
+    def test_checkout_without_legal_consent_is_rejected(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        response = self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Анна',
+            'customer_phone': '+77070000000',
+            'delivery_address': 'ул. Тест, 1',
+            'delivery_zone': self.zone.pk,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertContains(response, 'подтвердите согласие')
+        # Корзина не очищена — клиент может исправить и отправить повторно.
+        self.assertEqual(len(self.client.get(reverse('main:cart')).context['cart']), 1)
+
     def test_full_checkout_creates_order_and_clears_cart(self):
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
         self.client.post(reverse('main:cart_details'), {
@@ -95,6 +115,7 @@ class CheckoutFlowTests(TestCase):
         response = self.client.post(reverse('main:checkout'), {
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
+            'legal_consent': 'yes',
             'delivery_address': 'ул. Тест, 1',
             'delivery_zone': self.zone.pk,
         })
@@ -117,6 +138,7 @@ class CheckoutFlowTests(TestCase):
         response = self.client.post(reverse('main:checkout'), {
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
+            'legal_consent': 'yes',
             'delivery_address': 'ул. Тест, 1',
             'delivery_lat': '43.240000',
             'delivery_lng': '76.891000',
@@ -133,6 +155,7 @@ class CheckoutFlowTests(TestCase):
         self.client.post(reverse('main:checkout'), {
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
+            'legal_consent': 'yes',
             'delivery_address': 'Далеко',
             'delivery_lat': '44.238949',
             'delivery_lng': '76.889709',
@@ -147,6 +170,7 @@ class CheckoutFlowTests(TestCase):
         self.client.post(reverse('main:checkout'), {
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
+            'legal_consent': 'yes',
             'delivery_address': 'ул. Тест, 1',
             'delivery_zone': self.zone.pk,
         })
@@ -163,6 +187,7 @@ class CheckoutFlowTests(TestCase):
         self.client.post(reverse('main:checkout'), {
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
+            'legal_consent': 'yes',
             'delivery_address': 'ул. Тест, 1',
             'delivery_lat': '43.240000',
             'delivery_lng': '76.891000',
@@ -181,6 +206,16 @@ class PageSmokeTests(TestCase):
     def test_about_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:about')).status_code, 200)
 
+    def test_offer_page_loads(self):
+        response = self.client.get(reverse('main:offer'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Публичная')
+
+    def test_privacy_policy_page_loads(self):
+        response = self.client.get(reverse('main:privacy_policy'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'персональных данных')
+
     def test_catalog_and_product_detail_load(self):
         category = Category.objects.create(name='Категория')
         product = Product.objects.create(
@@ -197,7 +232,7 @@ class AdminDashboardTests(TestCase):
         from django.contrib.auth.models import User
         self.superuser = User.objects.create_superuser('owner', 'owner@example.com', 'pass12345')
 
-    def test_dashboard_shows_stats_for_superuser(self):
+    def test_dashboard_shows_only_nonzero_attention_stats(self):
         from reviews.models import Review
 
         category = Category.objects.create(name='Категория')
@@ -208,7 +243,6 @@ class AdminDashboardTests(TestCase):
             customer_name='Анна', customer_phone='+77070000000', delivery_address='ул. Тест, 1',
         )
         Review.objects.create(author_name='Клиент', text='Отзыв', status=Review.Status.DRAFT)
-        NewsletterSubscriber.objects.create(email='fan@example.com')
 
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:index'))
@@ -218,4 +252,12 @@ class AdminDashboardTests(TestCase):
         self.assertEqual(stats['Новых заказов'], 1)
         self.assertEqual(stats['Товаров без остатка'], 1)
         self.assertEqual(stats['Отзывов на модерации'], 1)
-        self.assertEqual(stats['Подписчиков за неделю'], 1)
+        # Нулевые показатели на дашборд не выводятся.
+        self.assertNotIn('Неудачных входов за сутки', stats)
+        self.assertFalse(response.context['dashboard_calm'])
+
+    def test_dashboard_is_calm_when_nothing_needs_attention(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:index'))
+        self.assertEqual(response.context['dashboard_stats'], [])
+        self.assertTrue(response.context['dashboard_calm'])

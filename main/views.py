@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 import requests
@@ -11,13 +12,31 @@ from content.models import HomepageBlock
 from delivery.models import DeliveryZone, ShopLocation
 from delivery.services import geocode_address, geocode_uri, resolve_delivery_zone, suggest_addresses
 from orders.models import Order, OrderItem
+from payments import gateway
 from reviews.models import Review
 
 from .cart import Cart
 
 
+def _checkout_client_ip(request):
+    fwd = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if fwd:
+        return fwd.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
 def about(request):
     return render(request, 'main/about.html')
+
+
+def offer(request):
+    """Публичный договор-оферта купли-продажи и доставки цветочной продукции."""
+    return render(request, 'main/legal_offer.html')
+
+
+def privacy_policy(request):
+    """Политика конфиденциальности и обработки персональных данных."""
+    return render(request, 'main/legal_privacy.html')
 
 
 def home(request):
@@ -105,8 +124,31 @@ def checkout(request):
         return redirect('catalog:product_list')
 
     delivery_zones = DeliveryZone.objects.filter(is_active=True).order_by('order')
+    context = {
+        'cart': cart,
+        'delivery_zones': delivery_zones,
+        'details': cart.get_details(),
+        'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
+        'payments_enabled': settings.PAYMENTS_ENABLED,
+    }
 
     if request.method == 'POST':
+        # Согласие с офертой и политикой обязательно. На клиенте это гарантирует
+        # атрибут required у чекбокса, здесь — страховка от обхода валидации.
+        if not request.POST.get('legal_consent'):
+            messages.error(
+                request,
+                'Чтобы оформить заказ, подтвердите согласие с публичной офертой '
+                'и политикой конфиденциальности.',
+            )
+            return render(request, 'main/checkout.html', context)
+
+        # При онлайн-оплате email обязателен — его требует платёжный шлюз.
+        customer_email = request.POST.get('customer_email', '').strip()
+        if settings.PAYMENTS_ENABLED and not customer_email:
+            messages.error(request, 'Укажите email — на него придёт чек об оплате.')
+            return render(request, 'main/checkout.html', context)
+
         items_total = cart.get_total_price()
         details = cart.get_details()
         comment = request.POST.get('comment', '').strip()
@@ -139,9 +181,13 @@ def checkout(request):
         delivery_price = delivery_zone.price if delivery_zone else 0
 
         order = Order.objects.create(
+            status=(
+                Order.Status.PENDING_PAYMENT if settings.PAYMENTS_ENABLED
+                else Order.Status.NEW
+            ),
             customer_name=request.POST.get('customer_name', '').strip(),
             customer_phone=request.POST.get('customer_phone', '').strip(),
-            customer_email=request.POST.get('customer_email', '').strip(),
+            customer_email=customer_email,
             delivery_zone=delivery_zone,
             delivery_address=request.POST.get('delivery_address', '').strip(),
             delivery_date=details.get('delivery_date') or None,
@@ -159,14 +205,32 @@ def checkout(request):
                 price=entry['price'],
             )
         cart.clear()
-        return redirect('main:order_success', order_id=order.pk)
 
-    context = {
-        'cart': cart,
-        'delivery_zones': delivery_zones,
-        'details': cart.get_details(),
-        'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
-    }
+        if not settings.PAYMENTS_ENABLED:
+            # Онлайн-оплата не подключена — менеджер свяжется и примет оплату.
+            return redirect('main:order_success', order_id=order.pk)
+
+        # Онлайн-оплата: создаём платёж и уводим клиента на форму шлюза.
+        payment = gateway.create_payment(order)
+        try:
+            form_url = gateway.init_payment(
+                payment,
+                client_ip=_checkout_client_ip(request),
+                success_url=request.build_absolute_uri(
+                    reverse('main:order_success', args=[order.pk])),
+                fail_url=request.build_absolute_uri(
+                    reverse('payments:failed', args=[order.pk])),
+                callback_url=request.build_absolute_uri(
+                    reverse('payments:callback')),
+            )
+        except gateway.PaymentGatewayError:
+            order.status = Order.Status.PAYMENT_FAILED
+            order.save(update_fields=['status', 'updated_at'])
+            messages.error(request, 'Не удалось начать оплату. Попробуйте ещё раз.')
+            return redirect('payments:failed', order_id=order.pk)
+
+        return redirect(form_url)
+
     return render(request, 'main/checkout.html', context)
 
 

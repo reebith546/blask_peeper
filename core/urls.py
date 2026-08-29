@@ -29,6 +29,7 @@ install_admin_dashboard()
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('catalog/', include('catalog.urls')),
+    path('payments/', include('payments.urls')),
     path('', include('main.urls')),
 ]
 

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load shop_extras %}
+
+{% block title %}Оплата не прошла — Black Pepper Flower Bar{% endblock %}
+
+{% block content %}
+
+<section class="section">
+  <div class="container">
+    <span class="eyebrow">Оплата не прошла</span>
+    <h1 class="section-title">Заказ №{{ order.pk }} не оплачен</h1>
+    <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+      Платёж на сумму {{ order.total_price|kzt }} не завершён — деньги не списаны.
+      Заказ сохранён, можно попробовать оплатить ещё раз.
+    </p>
+    <div class="hero__buttons">
+      <form method="post" action="{% url 'payments:retry' order.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--primary">Оплатить заказ</button>
+      </form>
+      <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-light">В каталог</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

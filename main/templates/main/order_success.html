@@ -1,19 +1,62 @@
 {% extends "base.html" %}
 {% load shop_extras %}
 
-{% block title %}Заказ №{{ order.pk }} принят — Black Pepper Flower Bar{% endblock %}
+{% block title %}Заказ №{{ order.pk }} — Black Pepper Flower Bar{% endblock %}
+
+{% block extra_head %}
+{% if order.status == 'pending_payment' %}
+<meta http-equiv="refresh" content="6">
+{% endif %}
+{% endblock %}
 
 {% block content %}
 
 <section class="section">
   <div class="container">
-    <span class="eyebrow">Спасибо!</span>
-    <h1 class="section-title">Заказ №{{ order.pk }} принят</h1>
-    <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
-      Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
-      деталей и оплаты. Итоговая сумма заказа — {{ order.total_price|kzt }}.
-    </p>
-    <a href="{% url 'catalog:product_list' %}" class="btn btn--primary">Вернуться в каталог</a>
+
+    {% if order.status == 'paid' %}
+      <span class="eyebrow">Оплачено</span>
+      <h1 class="section-title">Заказ №{{ order.pk }} оплачен</h1>
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Оплата на сумму {{ order.total_price|kzt }} получена. Флорист приступает к сборке,
+        менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения деталей доставки.
+      </p>
+
+    {% elif order.status == 'pending_payment' %}
+      <span class="eyebrow">Ожидаем оплату</span>
+      <h1 class="section-title">Заказ №{{ order.pk }} создан</h1>
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Подтверждаем оплату — обычно это занимает несколько секунд. Страница обновится сама.
+        Если вы закрыли форму оплаты, не завершив платёж, повторите оплату ниже.
+      </p>
+      <form method="post" action="{% url 'payments:retry' order.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--outline-light">Повторить оплату</button>
+      </form>
+
+    {% elif order.status == 'payment_failed' %}
+      <span class="eyebrow">Оплата не прошла</span>
+      <h1 class="section-title">Заказ №{{ order.pk }}</h1>
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Платёж на сумму {{ order.total_price|kzt }} не завершён. Заказ сохранён — можно оплатить ещё раз.
+      </p>
+      <form method="post" action="{% url 'payments:retry' order.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--primary">Оплатить заказ</button>
+      </form>
+
+    {% else %}
+      <span class="eyebrow">Спасибо!</span>
+      <h1 class="section-title">Заказ №{{ order.pk }} принят</h1>
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
+        деталей и оплаты. Итоговая сумма заказа — {{ order.total_price|kzt }}.
+      </p>
+    {% endif %}
+
+    <div class="hero__buttons" style="margin-top: 24px;">
+      <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-light">Вернуться в каталог</a>
+    </div>
   </div>
 </section>
 

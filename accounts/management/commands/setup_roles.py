@@ -5,6 +5,9 @@ from accounts.models import DIRECTOR_GROUP_NAME, SELLER_SECTION_GROUPS
 
 DIRECTOR_APPS = ['catalog', 'orders', 'content', 'reviews']
 ACTIONS = ['view', 'add', 'change']  # без delete — ни у директора, ни у продавцов
+# Журнал действий: у директора только просмотр (add/change/delete не существуют
+# как права вовсе — журнал append-only). Продавцам это право не выдаётся никогда.
+AUDIT_VIEW_PERM = ('audit', 'view_auditevent')
 OLD_MANAGER_GROUP_NAME = 'Менеджер магазина'  # предыдущая, более грубая версия роли
 
 
@@ -27,6 +30,10 @@ class Command(BaseCommand):
         # (но не разделом "Пользователи" целиком — тот виден только владельцу).
         director_group, created = Group.objects.get_or_create(name=DIRECTOR_GROUP_NAME)
         director_permissions = _permissions_for_apps(DIRECTOR_APPS) | _permissions_for_apps(['accounts'])
+        audit_view = Permission.objects.filter(
+            content_type__app_label=AUDIT_VIEW_PERM[0], codename=AUDIT_VIEW_PERM[1],
+        )
+        director_permissions = director_permissions | audit_view
         director_group.permissions.set(director_permissions)
         verb = 'Создана' if created else 'Обновлена'
         self.stdout.write(self.style.SUCCESS(
@@ -67,7 +74,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'Пустая группа "{OLD_MANAGER_GROUP_NAME}" удалена.'))
 
         self.stdout.write(self.style.SUCCESS(
-            'Готово. Владелец (superuser) назначает директоров через раздел '
-            '"Пользователи" (группа "Директор магазина" + "Сотрудник штата"). '
-            'Директор заводит продавцов через раздел "Продавцы".'
+            'Готово. Владелец (superuser) видит и может всё, включая полный '
+            '"Журнал действий". Директор заводит продавцов и других директоров '
+            'через раздел "Сотрудники" и видит журнал по действиям персонала '
+            '(без действий владельца). Продавцам журнал недоступен.'
         ))

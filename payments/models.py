@@ -1,14 +1,16 @@
+import uuid
+
 from django.db import models
 
 from orders.models import Order
 
 
 class Payment(models.Model):
-    """Платёж по заказу через TipTop Pay.
+    """Платёж по заказу через шлюз TipTop Pay / SmartCore.
 
-    Заготовка структуры данных для будущей интеграции: инициализация платежа
-    и обработка callback-уведомлений с проверкой HMAC-подписи будут
-    реализованы отдельным шагом (см. https://developers.tiptoppay.kz).
+    Один заказ может иметь несколько Payment — если клиент повторяет неудачную
+    оплату, создаётся новый Payment с новым invoice_id. Источник правды по
+    статусу — подписанный callback от шлюза (см. payments/gateway.py).
     """
 
     class Status(models.TextChoices):
@@ -26,16 +28,24 @@ class Payment(models.Model):
     status = models.CharField(
         'Статус', max_length=20, choices=Status.choices, default=Status.PENDING,
     )
-    # ID транзакции в TipTop Pay — используется для идемпотентной обработки
-    # повторных callback-уведомлений (один external_id обрабатывается один раз).
+    # Наш идентификатор платежа — уходит в шлюз как order_id и возвращается
+    # в callback как orderId. По нему находим Payment при обработке уведомления.
+    invoice_id = models.CharField('Наш ID платежа', max_length=64, unique=True)
+    # ID платежа на стороне шлюза (order_id из ответа initPayment).
     external_id = models.CharField(
-        'ID транзакции TipTop Pay', max_length=100, blank=True, unique=True,
-        null=True,
+        'ID платежа в шлюзе', max_length=100, blank=True, unique=True, null=True,
     )
+    # Ссылка на форму оплаты, выданная initPayment — по ней клиент платит.
+    form_url = models.URLField('Ссылка на форму оплаты', max_length=500, blank=True)
     raw_callback_data = models.JSONField('Данные callback-уведомления', blank=True, null=True)
 
+    paid_at = models.DateTimeField('Оплачен', null=True, blank=True)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
+
+    @staticmethod
+    def build_invoice_id(order):
+        return f'bpf-{order.pk}-{uuid.uuid4().hex[:8]}'
 
     class Meta:
         verbose_name = 'Платёж'

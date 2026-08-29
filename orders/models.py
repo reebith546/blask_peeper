@@ -9,6 +9,7 @@ class Order(models.Model):
 
     class Status(models.TextChoices):
         NEW = 'new', 'Новый'
+        PENDING_PAYMENT = 'pending_payment', 'Ожидает оплаты'
         PAID = 'paid', 'Оплачен'
         PROCESSING = 'processing', 'Собирается'
         DELIVERED = 'delivered', 'Доставлен'

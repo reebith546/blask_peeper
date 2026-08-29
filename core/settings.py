@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'accounts',
+    'audit',
     'main',
     'catalog',
     'orders',
@@ -49,6 +50,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'audit.middleware.AuditContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -143,10 +145,24 @@ ADMIN_SITE_TITLE = 'Black Pepper Admin'
 ADMIN_INDEX_TITLE = 'Панель управления'
 
 
-# TipTop Pay — платёжный шлюз (https://developers.tiptoppay.kz)
-# Ключи только через .env, никогда не коммитятся в git
-TIPTOP_PUBLIC_ID = env('TIPTOP_PUBLIC_ID', default='')
-TIPTOP_API_SECRET = env('TIPTOP_API_SECRET', default='')
+# Платёжный шлюз TipTop Pay / SmartCore (https://docs.smartcore.pro).
+# Схема: initPayment на сервере -> редирект клиента на форму оплаты шлюза ->
+# подписанный callback о результате -> перевод заказа в «Оплачен».
+# Ключи только через .env, никогда не коммитятся в git.
+SMARTCORE_API_BASE = env('SMARTCORE_API_BASE', default='https://api-gateway.smartcore.pro')
+SMARTCORE_ACCOUNT = env('SMARTCORE_ACCOUNT', default='')       # имя мерчант-аккаунта (для теста с суффиксом -sandbox)
+SMARTCORE_MERCHANT_KEY = env('SMARTCORE_MERCHANT_KEY', default='')  # логин Basic-авторизации
+SMARTCORE_SECRET = env('SMARTCORE_SECRET', default='')         # пароль Basic-авторизации И ключ подписи callback'ов
+
+PAYMENT_CURRENCY = env('PAYMENT_CURRENCY', default='KZT')
+# Магазин работает только по Алматы — недостающие для шлюза поля адреса берём отсюда.
+PAYMENT_CUSTOMER_CITY = env('PAYMENT_CUSTOMER_CITY', default='Almaty')
+PAYMENT_CUSTOMER_COUNTRY = env('PAYMENT_CUSTOMER_COUNTRY', default='KZ')
+PAYMENT_CUSTOMER_ZIP = env('PAYMENT_CUSTOMER_ZIP', default='050000')
+
+# Онлайн-оплата включается автоматически, когда заданы все три реквизита.
+# Пока их нет — чекаут работает по-старому (заказ создаётся, менеджер звонит).
+PAYMENTS_ENABLED = bool(SMARTCORE_ACCOUNT and SMARTCORE_MERCHANT_KEY and SMARTCORE_SECRET)
 
 # Яндекс Карты — автоподсказки адреса на чекауте.
 # Геосаджест отдаёт только текстовые подсказки, Геокодер — координаты выбранного

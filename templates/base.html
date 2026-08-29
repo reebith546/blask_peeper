@@ -53,14 +53,15 @@
 
 <footer class="site-footer" id="footer">
   <div class="container footer-main">
-    <div>
+    <div class="footer-col">
+      <span class="footer-heading">Контакты</span>
       <p class="footer-brand__text">
         г. Алматы, ул. Кабанбай батыра, 47<br>
         +7 (706) 664-41-44<br>
         hello@characterflowers.kz
       </p>
     </div>
-    <div>
+    <div class="footer-col">
       <span class="footer-heading">Навигация</span>
       <ul class="footer-nav">
         <li><a href="{% url 'catalog:product_list' %}">Каталог</a></li>
@@ -68,7 +69,14 @@
         <li><a href="{% url 'main:home' %}#advantages">Доставка</a></li>
       </ul>
     </div>
-    <div class="footer-hours">
+    <div class="footer-col">
+      <span class="footer-heading">Документы</span>
+      <ul class="footer-nav">
+        <li><a href="{% url 'main:offer' %}">Публичная оферта</a></li>
+        <li><a href="{% url 'main:privacy_policy' %}">Политика конфиденциальности</a></li>
+      </ul>
+    </div>
+    <div class="footer-col footer-hours">
       <span class="footer-heading">Часы работы</span>
       <p>Пн–Вс: 11:00–21:00</p>
       <p>Доставка: ежедневно</p>

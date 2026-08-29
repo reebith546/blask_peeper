@@ -9,19 +9,20 @@
 
 {% block nav-breadcrumbs %}{% endblock %}
 
-{% block nav-sidebar %}{% endblock %}
-
 {% block content %}
 <div id="content-main">
   {% if dashboard_stats %}
+  <h2 class="bp-dashboard-heading">Требует внимания</h2>
   <div class="bp-dashboard-stats">
     {% for stat in dashboard_stats %}
-    <a href="{{ stat.url }}" class="bp-stat-card{% if stat.tone == 'warning' and stat.value > 0 %} bp-stat-card--warning{% endif %}">
+    <a href="{{ stat.url }}" class="bp-stat-card bp-stat-card--warning">
       <span class="bp-stat-card__value">{{ stat.value }}</span>
       <span class="bp-stat-card__label">{{ stat.label }}</span>
     </a>
     {% endfor %}
   </div>
+  {% elif dashboard_calm %}
+  <p class="bp-dashboard-calm">Задач, требующих внимания, сейчас нет.</p>
   {% endif %}
   {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 </div>
