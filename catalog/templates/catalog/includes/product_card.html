@@ -4,15 +4,6 @@
     <a href="{% url 'catalog:product_detail' product.slug %}"{% if lightbox_group %} class="js-lightbox" data-lightbox-group="{{ lightbox_group }}" data-lightbox-src="{{ product.image.url }}" data-lightbox-alt="{{ product.name }}"{% endif %}>
       <img class="bouquet-card__image" src="{{ product.image.url }}" alt="{{ product.name }}">
     </a>
-    {% if product.in_stock %}
-      <form action="{% url 'main:cart_add' product.pk %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.path }}">
-        <button class="bouquet-card__quickadd" type="submit" title="Быстро добавить в корзину">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-      </form>
-    {% endif %}
   </div>
   <div class="bouquet-card__body">
     {% if not minimal %}

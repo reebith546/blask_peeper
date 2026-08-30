@@ -30,7 +30,7 @@
     <div class="carousel">
       <div class="carousel__track bouquets-carousel__track">
         {% for product in popular_products %}
-          {% include "catalog/includes/product_card.html" with lightbox_group="popular" minimal=True %}
+          {% include "catalog/includes/product_card.html" with minimal=True %}
         {% endfor %}
       </div>
       <button type="button" class="carousel-arrow carousel-arrow--prev" data-carousel-prev aria-label="Предыдущие букеты">

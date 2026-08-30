@@ -181,6 +181,34 @@
     });
   })();
 
+  // Слайдер фото на странице товара: миниатюры + стрелки + свайп.
+  (function () {
+    var slider = document.getElementById('product-slider');
+    if (!slider) return;
+    var main = document.getElementById('product-slider-main');
+    var thumbs = [].slice.call(slider.querySelectorAll('.product-slider__thumb'));
+    if (!main || thumbs.length < 2) return;
+    var idx = 0;
+    function show(n) {
+      idx = (n + thumbs.length) % thumbs.length;
+      main.src = thumbs[idx].dataset.sliderSrc;
+      thumbs.forEach(function (t, k) { t.classList.toggle('is-active', k === idx); });
+    }
+    thumbs.forEach(function (t, k) { t.addEventListener('click', function () { show(k); }); });
+    var prev = slider.querySelector('[data-slider-prev]');
+    var next = slider.querySelector('[data-slider-next]');
+    if (prev) prev.addEventListener('click', function () { show(idx - 1); });
+    if (next) next.addEventListener('click', function () { show(idx + 1); });
+    var x0 = null;
+    main.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+    main.addEventListener('touchend', function (e) {
+      if (x0 === null) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 45) show(dx < 0 ? idx + 1 : idx - 1);
+      x0 = null;
+    });
+  })();
+
   // Лайтбокс-галерея: открытие по клику на фото, свайп между фото,
   // приближение щипком (pinch) на телефоне и колёсиком/двойным кликом на десктопе —
   // похоже на системную галерею фото.
