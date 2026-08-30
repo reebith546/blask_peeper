@@ -4,6 +4,58 @@ from django.db import models
 
 from orders.models import Order
 
+DEFAULT_API_BASE = 'https://api-gateway.smartcore.pro'
+
+
+class PaymentSettings(models.Model):
+    """Реквизиты платёжного шлюза, редактируемые владельцем в админке.
+
+    Синглтон (всегда одна запись, pk=1). Если заполнены account + merchant_key +
+    secret и включён флаг — онлайн-оплата работает с этими значениями.
+    Значения из .env используются только как запасной вариант, когда запись
+    не заполнена (см. payments/gateway.get_config).
+    """
+
+    is_enabled = models.BooleanField(
+        'Принимать онлайн-оплату', default=False,
+        help_text='Выключите, чтобы временно вернуться к оплате через менеджера.',
+    )
+    account = models.CharField(
+        'Account (имя мерчант-аккаунта)', max_length=100, blank=True,
+        help_text='Для теста — с суффиксом «-sandbox».',
+    )
+    merchant_key = models.CharField('Merchant Key (логин API)', max_length=200, blank=True)
+    secret = models.CharField(
+        'Secret (пароль API и ключ подписи)', max_length=255, blank=True,
+        help_text='Хранится в базе. Не показывается после сохранения.',
+    )
+    api_base = models.URLField(
+        'Адрес API шлюза', max_length=200, blank=True, default=DEFAULT_API_BASE,
+        help_text='Меняйте, только если у вашего аккаунта другой домен API.',
+    )
+    currency = models.CharField('Валюта', max_length=3, default='KZT')
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Настройки онлайн-оплаты'
+        verbose_name_plural = 'Настройки онлайн-оплаты'
+
+    def __str__(self):
+        return 'Настройки онлайн-оплаты'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def is_ready(self):
+        return bool(self.is_enabled and self.account and self.merchant_key and self.secret)
+
 
 class Payment(models.Model):
     """Платёж по заказу через шлюз TipTop Pay / SmartCore.

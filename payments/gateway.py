@@ -12,6 +12,7 @@ import base64
 import hashlib
 import hmac
 import logging
+from collections import namedtuple
 
 import requests
 from django.conf import settings
@@ -21,24 +22,55 @@ from audit.models import AuditEvent
 from audit.services import record
 from orders.models import Order
 
-from .models import Payment
+from .models import DEFAULT_API_BASE, Payment, PaymentSettings
 
 logger = logging.getLogger('payments')
 
 _TIMEOUT = 30
+
+Config = namedtuple('Config', 'account merchant_key secret api_base currency enabled')
 
 
 class PaymentGatewayError(Exception):
     """Ошибка обращения к шлюзу или отказ инициализации платежа."""
 
 
+def get_config():
+    """Реквизиты шлюза: сначала запись из админки, затем — значения из .env."""
+    row = PaymentSettings.objects.filter(pk=1).first()
+    if row and row.account and row.merchant_key and row.secret:
+        return Config(
+            account=row.account,
+            merchant_key=row.merchant_key,
+            secret=row.secret,
+            api_base=(row.api_base or DEFAULT_API_BASE),
+            currency=(row.currency or 'KZT'),
+            enabled=bool(row.is_enabled),
+        )
+    return Config(
+        account=settings.SMARTCORE_ACCOUNT,
+        merchant_key=settings.SMARTCORE_MERCHANT_KEY,
+        secret=settings.SMARTCORE_SECRET,
+        api_base=(settings.SMARTCORE_API_BASE or DEFAULT_API_BASE),
+        currency=settings.PAYMENT_CURRENCY,
+        enabled=bool(settings.SMARTCORE_ACCOUNT and settings.SMARTCORE_MERCHANT_KEY
+                     and settings.SMARTCORE_SECRET),
+    )
+
+
+def payments_enabled():
+    c = get_config()
+    return c.enabled and bool(c.account and c.merchant_key and c.secret)
+
+
 def _auth_header():
-    raw = f'{settings.SMARTCORE_MERCHANT_KEY}:{settings.SMARTCORE_SECRET}'.encode()
+    cfg = get_config()
+    raw = f'{cfg.merchant_key}:{cfg.secret}'.encode()
     return 'Basic ' + base64.b64encode(raw).decode('ascii')
 
 
 def _post(path, payload):
-    url = settings.SMARTCORE_API_BASE.rstrip('/') + path
+    url = get_config().api_base.rstrip('/') + path
     try:
         resp = requests.post(
             url, json=payload, timeout=_TIMEOUT,
@@ -61,7 +93,7 @@ def signature_for(params):
     keys = sorted(k for k in params if k != 'sign')
     base_str = '|'.join(str(params[k]) for k in keys)
     return hmac.new(
-        settings.SMARTCORE_SECRET.encode(), base_str.encode(), hashlib.sha256,
+        get_config().secret.encode(), base_str.encode(), hashlib.sha256,
     ).hexdigest()
 
 
@@ -79,7 +111,7 @@ def create_payment(order):
     return Payment.objects.create(
         order=order,
         amount=order.total_price,
-        currency=settings.PAYMENT_CURRENCY,
+        currency=get_config().currency,
         invoice_id=Payment.build_invoice_id(order),
     )
 
@@ -90,7 +122,7 @@ def init_payment(payment, *, client_ip, success_url, fail_url, callback_url):
     first_name, _, last_name = (order.customer_name or '').strip().partition(' ')
 
     payload = {
-        'account': settings.SMARTCORE_ACCOUNT,
+        'account': get_config().account,
         'currency': payment.currency,
         'order_id': payment.invoice_id,
         'amount_major': float(payment.amount),

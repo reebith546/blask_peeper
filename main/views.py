@@ -129,7 +129,7 @@ def checkout(request):
         'delivery_zones': delivery_zones,
         'details': cart.get_details(),
         'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
-        'payments_enabled': settings.PAYMENTS_ENABLED,
+        'payments_enabled': gateway.payments_enabled(),
     }
 
     if request.method == 'POST':
@@ -145,7 +145,7 @@ def checkout(request):
 
         # При онлайн-оплате email обязателен — его требует платёжный шлюз.
         customer_email = request.POST.get('customer_email', '').strip()
-        if settings.PAYMENTS_ENABLED and not customer_email:
+        if gateway.payments_enabled() and not customer_email:
             messages.error(request, 'Укажите email — на него придёт чек об оплате.')
             return render(request, 'main/checkout.html', context)
 
@@ -182,7 +182,7 @@ def checkout(request):
 
         order = Order.objects.create(
             status=(
-                Order.Status.PENDING_PAYMENT if settings.PAYMENTS_ENABLED
+                Order.Status.PENDING_PAYMENT if gateway.payments_enabled()
                 else Order.Status.NEW
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
@@ -206,7 +206,7 @@ def checkout(request):
             )
         cart.clear()
 
-        if not settings.PAYMENTS_ENABLED:
+        if not gateway.payments_enabled():
             # Онлайн-оплата не подключена — менеджер свяжется и примет оплату.
             return redirect('main:order_success', order_id=order.pk)
 

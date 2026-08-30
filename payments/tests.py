@@ -9,12 +9,19 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
+import json as _json
+
+from django.contrib.auth.models import Group, User
+from django.core.management import call_command
+
+from accounts.models import SELLER_SECTION_GROUPS
+from audit.models import AuditEvent
 from catalog.models import Category, Product
 from delivery.models import DeliveryZone
 from orders.models import Order
 
 from . import gateway
-from .models import Payment
+from .models import Payment, PaymentSettings
 
 SETTINGS = dict(
     PAYMENTS_ENABLED=True,
@@ -250,3 +257,136 @@ class CheckoutWithoutPaymentsTests(TestCase):
         self.assertEqual(order.status, Order.Status.NEW)
         self.assertEqual(Payment.objects.count(), 0)
         self.assertRedirects(resp, reverse('main:order_success', args=[order.pk]))
+
+
+class PaymentSettingsModelTests(TestCase):
+    def test_load_is_singleton(self):
+        a = PaymentSettings.load()
+        b = PaymentSettings.load()
+        self.assertEqual(a.pk, 1)
+        self.assertEqual(b.pk, 1)
+        self.assertEqual(PaymentSettings.objects.count(), 1)
+
+    def test_config_prefers_db_row_over_env(self):
+        with override_settings(SMARTCORE_ACCOUNT='env-acc', SMARTCORE_MERCHANT_KEY='env-key',
+                               SMARTCORE_SECRET='env-sec'):
+            row = PaymentSettings.load()
+            row.is_enabled = True
+            row.account = 'db-acc'
+            row.merchant_key = 'db-key'
+            row.secret = 'db-sec'
+            row.api_base = 'https://db.example.test'
+            row.save()
+
+            cfg = gateway.get_config()
+            self.assertEqual(cfg.account, 'db-acc')
+            self.assertEqual(cfg.secret, 'db-sec')
+            self.assertEqual(cfg.api_base, 'https://db.example.test')
+            self.assertTrue(gateway.payments_enabled())
+
+    def test_disabled_flag_turns_payments_off_even_with_creds(self):
+        row = PaymentSettings.load()
+        row.account, row.merchant_key, row.secret = 'a', 'k', 's'
+        row.is_enabled = False
+        row.save()
+        self.assertFalse(gateway.payments_enabled())
+
+    def test_env_fallback_when_no_db_row(self):
+        with override_settings(SMARTCORE_ACCOUNT='', SMARTCORE_MERCHANT_KEY='', SMARTCORE_SECRET=''):
+            self.assertFalse(gateway.payments_enabled())
+        with override_settings(SMARTCORE_ACCOUNT='a', SMARTCORE_MERCHANT_KEY='k', SMARTCORE_SECRET='s'):
+            self.assertTrue(gateway.payments_enabled())
+
+
+class PaymentSettingsAdminTests(TestCase):
+    def setUp(self):
+        call_command('setup_roles')
+        self.owner = User.objects.create_superuser('owner', 'o@e.com', 'pass12345')
+        self.seller = User.objects.create_user('seller', password='pass12345', is_staff=True)
+        self.seller.groups.add(Group.objects.get(name=SELLER_SECTION_GROUPS['catalog']))
+        self.url = reverse('admin:payments_paymentsettings_change', args=[1])
+
+    def test_only_superuser_can_open_settings(self):
+        self.client.force_login(self.seller)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.client.force_login(self.owner)
+        PaymentSettings.load()
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_changelist_redirects_to_the_single_object(self):
+        self.client.force_login(self.owner)
+        resp = self.client.get(reverse('admin:payments_paymentsettings_changelist'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/1/change/', resp['Location'])
+
+    def test_blank_secret_keeps_existing_value_and_is_not_logged(self):
+        row = PaymentSettings.load()
+        row.secret = 'existing-secret'
+        row.save()
+
+        self.client.force_login(self.owner)
+        resp = self.client.post(self.url, {
+            'is_enabled': 'on', 'account': 'ACC', 'merchant_key': 'KEY',
+            'secret': '',  # не трогаем
+            'api_base': 'https://api-gateway.smartcore.pro', 'currency': 'KZT',
+        })
+        self.assertEqual(resp.status_code, 302)
+        row.refresh_from_db()
+        self.assertEqual(row.secret, 'existing-secret')
+        self.assertEqual(row.account, 'ACC')
+
+        events = AuditEvent.objects.filter(action=AuditEvent.Action.UPDATE)
+        blob = _json.dumps([e.changes for e in events])
+        self.assertNotIn('existing-secret', blob)
+
+    def test_new_secret_is_redacted_in_audit_log(self):
+        PaymentSettings.load()
+        self.client.force_login(self.owner)
+        self.client.post(self.url, {
+            'is_enabled': 'on', 'account': 'ACC', 'merchant_key': 'KEY',
+            'secret': 'brand-new-secret-value',
+            'api_base': 'https://api-gateway.smartcore.pro', 'currency': 'KZT',
+        })
+        PaymentSettings.load().refresh_from_db()
+        self.assertEqual(PaymentSettings.objects.get(pk=1).secret, 'brand-new-secret-value')
+
+        event = AuditEvent.objects.filter(action=AuditEvent.Action.UPDATE).first()
+        self.assertIsNotNone(event)
+        self.assertEqual(event.changes.get('secret'), ['***', '***'])
+        self.assertNotIn('brand-new-secret-value', _json.dumps(event.changes))
+
+
+@override_settings(SMARTCORE_ACCOUNT='', SMARTCORE_MERCHANT_KEY='', SMARTCORE_SECRET='')
+class CheckoutUsesDbConfigTests(TestCase):
+    def setUp(self):
+        row = PaymentSettings.load()
+        row.is_enabled = True
+        row.account, row.merchant_key, row.secret = 'db-account', 'db-key', 'db-secret'
+        row.api_base = 'https://db-gateway.test'
+        row.save()
+
+        self.category = Category.objects.create(name='Кат')
+        self.product = Product.objects.create(
+            name='Букет', category=self.category, price=Decimal('12000'), in_stock=True, image=_img(),
+        )
+        self.zone = DeliveryZone.objects.create(
+            name='Р', radius_from_km=0, radius_to_km=5, price=Decimal('0'),
+        )
+
+    @patch('payments.gateway.requests.post')
+    def test_checkout_calls_gateway_with_db_credentials(self, mock_post):
+        mock_post.return_value = _fake_response(
+            {'status': 0, 'form_url': 'https://db-gateway.test/form/1', 'order_id': 'X1'})
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        resp = self.client.post(reverse('main:checkout'), {
+            'customer_name': 'Иван Петров', 'customer_phone': '+77070000000',
+            'customer_email': 'i@e.com', 'delivery_address': 'ул. Абая, 10',
+            'delivery_zone': self.zone.pk, 'legal_consent': 'yes',
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], 'https://db-gateway.test/form/1')
+
+        called_url = mock_post.call_args.args[0] if mock_post.call_args.args else mock_post.call_args.kwargs.get('url')
+        self.assertTrue(called_url.startswith('https://db-gateway.test/'))
+        sent = mock_post.call_args.kwargs['json']
+        self.assertEqual(sent['account'], 'db-account')

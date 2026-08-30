@@ -1,9 +1,13 @@
+from django import forms
+from django.conf import settings
 from django.contrib import admin
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from audit.admin_mixins import AuditModelAdmin
 
 from . import gateway
-from .models import Payment
+from .models import Payment, PaymentSettings
 
 
 @admin.register(Payment)
@@ -32,3 +36,79 @@ class PaymentAdmin(AuditModelAdmin, admin.ModelAdmin):
                 self.message_user(request, f'Платёж {payment.invoice_id}: {exc}', level='error')
         if checked:
             self.message_user(request, f'Проверено платежей: {checked}.')
+
+
+class PaymentSettingsForm(forms.ModelForm):
+    # Секрет не отдаём обратно в форму — только приём. Пусто = не менять.
+    secret = forms.CharField(
+        label='Secret (пароль API и ключ подписи)',
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={'autocomplete': 'new-password'}),
+        help_text='Оставьте пустым, чтобы сохранить текущее значение.',
+    )
+
+    class Meta:
+        model = PaymentSettings
+        fields = ('is_enabled', 'account', 'merchant_key', 'secret', 'api_base', 'currency')
+
+    def clean_secret(self):
+        value = self.cleaned_data.get('secret', '')
+        if not value and self.instance and self.instance.pk:
+            return self.instance.secret  # ничего не ввели — оставляем как было
+        return value
+
+
+@admin.register(PaymentSettings)
+class PaymentSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
+    """Реквизиты платёжного шлюза — заполняет владелец. Только для superuser."""
+
+    form = PaymentSettingsForm
+    # Секрет исключаем из diff «Журнала действий», чтобы не светить его значение.
+    audit_exclude_fields = ('secret',)
+    readonly_fields = ('callback_url', 'status_note', 'updated_at')
+    fieldsets = (
+        ('Приём оплаты', {'fields': ('is_enabled', 'status_note')}),
+        ('Реквизиты из личного кабинета шлюза', {
+            'fields': ('account', 'merchant_key', 'secret', 'api_base', 'currency'),
+        }),
+        ('Для кабинета шлюза', {
+            'fields': ('callback_url',),
+            'description': 'Этот адрес укажите в настройках уведомлений (callback) '
+                           'в личном кабинете платёжного шлюза.',
+        }),
+        (None, {'fields': ('updated_at',)}),
+    )
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        # Синглтон — сразу открываем единственную запись.
+        obj = PaymentSettings.load()
+        return redirect(reverse('admin:payments_paymentsettings_change', args=[obj.pk]))
+
+    @admin.display(description='URL для кабинета шлюза (callback)')
+    def callback_url(self, obj):
+        host = next((h for h in settings.ALLOWED_HOSTS if h not in ('*', 'localhost', '127.0.0.1')),
+                    'ваш-домен')
+        return f'https://{host}/payments/callback/'
+
+    @admin.display(description='Состояние')
+    def status_note(self, obj):
+        if gateway.payments_enabled():
+            return 'Онлайн-оплата активна.'
+        if obj and obj.is_enabled and not (obj.account and obj.merchant_key and obj.secret):
+            return 'Флаг включён, но не заполнены все реквизиты — оплата не работает.'
+        return 'Онлайн-оплата выключена. Заказы принимаются без предоплаты.'

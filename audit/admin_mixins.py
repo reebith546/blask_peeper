@@ -26,6 +26,10 @@ def _repr_value(value):
 
 
 class AuditModelAdmin:
+    # Поля, значения которых не должны попадать в журнал (пароли, ключи, секреты).
+    # Факт изменения фиксируется, значения — как '***'.
+    audit_exclude_fields = ()
+
     def save_model(self, request, obj, form, change):
         # До сохранения снимаем старые значения изменённых простых полей.
         diff = {}
@@ -43,6 +47,11 @@ class AuditModelAdmin:
                         continue
                     if field.many_to_many:
                         continue  # M2M разбираем в save_related
+                    if field_name in self.audit_exclude_fields:
+                        # сравниваем реальные значения, но в журнал пишем '***'
+                        if getattr(old, field.attname, None) != getattr(obj, field.attname, None):
+                            diff[field_name] = ['***', '***']
+                        continue
                     old_v = _repr_value(getattr(old, field.attname, getattr(old, field_name, None)))
                     new_v = _repr_value(getattr(obj, field.attname, getattr(obj, field_name, None)))
                     if old_v != new_v:
