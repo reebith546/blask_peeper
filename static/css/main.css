@@ -87,14 +87,41 @@ ul { list-style: none; }
 /* ============ HEADER ============ */
 .site-header {
   background: var(--bg-dark);
-  padding: 32px 0;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: box-shadow 0.3s ease;
 }
+.site-header.is-scrolled {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Верхняя служебная полоса: часы работы, телефон, соцсети */
+.header-topbar {
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border-soft);
+}
+.header-topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 9px 0;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+.header-topbar__note { color: var(--text-onDark-muted); }
+.header-topbar__links { display: flex; align-items: center; gap: 20px; }
+.header-topbar__links a { color: var(--text-onDark-soft); transition: color 0.3s ease; }
+.header-topbar__links a:hover { color: var(--accent); }
+.header-topbar__links svg { width: 15px; height: 15px; display: block; }
+
 .site-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 40px;
+  padding: 18px 0;
 }
 .logo { display: flex; align-items: center; }
 .logo__image { height: 40px; width: auto; }
@@ -127,6 +154,20 @@ ul { list-style: none; }
 .header-icons svg:hover { color: var(--accent); }
 
 .header-icons a { display: flex; }
+
+.header-icons .header-phone {
+  display: none;              /* на десктопе телефон живёт в верхней полосе */
+  align-items: center;
+  gap: 8px;
+  color: var(--text-onDark);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+.header-phone:hover { color: var(--accent); }
+.header-phone svg { width: 18px; height: 18px; color: var(--accent); }
+
 .header-icons__badge {
   position: relative;
 }
@@ -999,6 +1040,8 @@ ul { list-style: none; }
   .reviews-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-main { grid-template-columns: 1fr 1fr; gap: 48px 32px; }
   .instagram-grid { grid-template-columns: repeat(3, 1fr); }
+  .header-topbar__note { display: none; }
+  .header-topbar__inner { justify-content: flex-end; }
   .nav {
     display: none;
     position: absolute;
@@ -1022,7 +1065,13 @@ ul { list-style: none; }
 
 @media (max-width: 720px) {
   .container { padding: 0 20px; }
-  .site-header__inner { flex-wrap: wrap; }
+  .header-topbar { display: none; }
+  .header-icons .header-phone { display: inline-flex; }
+  .site-header__inner { flex-wrap: nowrap; padding: 13px 0; gap: 12px; }
+  .header-icons { gap: 14px; }
+  .header-phone span { font-size: 13px; }
+  .nav a { padding-left: 20px; padding-right: 20px; }
+  .logo__image { height: 34px; }
   .hero { padding: 40px 0 60px; }
   .hero__title { font-size: 44px; }
   .hero__buttons { flex-direction: column; }

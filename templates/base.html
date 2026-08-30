@@ -13,7 +13,21 @@
 </head>
 <body>
 
-<header class="site-header">
+<header class="site-header" id="site-header">
+  <div class="header-topbar">
+    <div class="container header-topbar__inner">
+      <span class="header-topbar__note">Доставка цветов по Алматы · Пн–Вс 11:00–21:00</span>
+      <div class="header-topbar__links">
+        <a href="tel:+77066644144">+7 (706) 664-41-44</a>
+        <a href="https://www.instagram.com/blackpepperflowerbar" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+        </a>
+        <a href="https://wa.me/77066644144" target="_blank" rel="noopener" aria-label="WhatsApp">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Z" stroke="currentColor" stroke-width="1.6"/><path d="M8.3 8.6c.2-.5.5-.5.7-.5h.5c.2 0 .4 0 .6.4l.7 1.7c.1.2 0 .4-.1.5l-.5.5c-.1.1-.1.3 0 .5.3.6 1.5 2 2.6 2.5.2.1.4 0 .5-.1l.5-.6c.1-.2.3-.2.5-.1l1.6.8c.2.1.3.3.3.5-.1.6-.5 1.3-1.1 1.5-1 .4-2.2.2-3.9-.7-1.6-.9-2.8-2.2-3.3-3.4-.4-1-.5-2.2-.1-3z" fill="currentColor"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
   <div class="container site-header__inner">
     <a href="{% url 'main:home' %}" class="logo">
       <img src="{% static 'images/logo-white.png' %}" alt="Black Pepper Flower Bar" class="logo__image">
@@ -27,7 +41,11 @@
       <a href="{% url 'main:home' %}#footer">Контакты</a>
     </nav>
     <div class="header-icons">
-      <a href="{% url 'main:cart' %}" class="header-icons__badge">
+      <a href="tel:+77066644144" class="header-phone" aria-label="Позвонить">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11 11 0 0 0 3.5.56 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.56 3.5a1 1 0 0 1-.25 1L6.6 10.8Z" fill="currentColor"/></svg>
+        <span>+7 (706) 664-41-44</span>
+      </a>
+      <a href="{% url 'main:cart' %}" class="header-icons__badge" aria-label="Корзина">
         <svg viewBox="0 0 24 24" fill="none"><path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8"/><path d="M5 8h14l-1 11H6L5 8Z" stroke="currentColor" stroke-width="1.8"/></svg>
         {% if cart|length > 0 %}<span class="header-icons__count">{{ cart|length }}</span>{% endif %}
       </a>
@@ -121,6 +139,17 @@
       var isOpen = nav.classList.toggle('is-open');
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
+  })();
+
+  // Тень у прилипшего хедера, когда страница прокручена.
+  (function () {
+    var header = document.getElementById('site-header');
+    if (!header) return;
+    var sync = function () {
+      header.classList.toggle('is-scrolled', window.scrollY > 8);
+    };
+    sync();
+    window.addEventListener('scroll', sync, { passive: true });
   })();
 
   // Панель "Фильтры и сортировка" в каталоге — сворачивается на мобильных.
