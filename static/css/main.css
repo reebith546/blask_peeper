@@ -218,6 +218,30 @@ ul { list-style: none; }
 .hero__grid {
   display: block;
 }
+
+/* Hero с фоновым фото (загружается в админке: Блоки главной → Hero-баннер → Изображение) */
+.hero--image {
+  position: relative;
+  min-height: 540px;
+  display: flex;
+  align-items: center;
+  padding: 100px 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.hero--image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(20, 17, 16, 0.88) 0%,
+    rgba(20, 17, 16, 0.55) 48%,
+    rgba(20, 17, 16, 0.15) 100%
+  );
+}
+.hero--image .hero__grid { position: relative; z-index: 1; width: 100%; }
 .hero__title {
   font-family: var(--display);
   font-size: 88px;
@@ -1092,6 +1116,10 @@ ul { list-style: none; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 34px; }
   .hero { padding: 40px 0 60px; }
+  .hero--image { min-height: 420px; padding: 64px 0; }
+  .hero--image::before {
+    background: linear-gradient(180deg, rgba(20,17,16,0.55) 0%, rgba(20,17,16,0.82) 100%);
+  }
   .hero__title { font-size: 44px; }
   .hero__buttons { flex-direction: column; }
   .hero__buttons .btn { width: 100%; }

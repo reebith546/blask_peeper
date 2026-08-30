@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<section class="hero">
+<section class="hero{% if hero_block.image %} hero--image{% endif %}"{% if hero_block.image %} style="background-image: url('{{ hero_block.image.url }}')"{% endif %}>
   <div class="container hero__grid">
     <div>
       <span class="eyebrow">Авторская флористика • Алматы</span>
