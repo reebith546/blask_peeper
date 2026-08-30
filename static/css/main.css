@@ -855,11 +855,15 @@ ul { list-style: none; }
 
 /* ============ FOOTER ============ */
 .site-footer { background: #151312; color: var(--text-onDark); }
-.footer-main {
-  /* padding-top/bottom только — горизонтальные отступы наследуются от .container.
-     Шорткат `padding: 80px 0 56px` обнулял бы боковые и футер прилипал бы к краю. */
+/* Вертикальные отступы задаём через `.site-footer .footer-main` (специфичнее,
+   чем `.container`) — иначе медиазапросы `.container { padding: 0 40px/20px }`
+   шорткатом обнуляют верх/низ, и на планшете/мобиле футер прижимается к краю.
+   Горизонтальные отступы при этом наследуются от `.container`. */
+.site-footer .footer-main {
   padding-top: 80px;
   padding-bottom: 56px;
+}
+.footer-main {
   display: grid;
   grid-template-columns: 1.3fr 1fr 1fr 1fr;
   gap: 40px 32px;
@@ -1027,7 +1031,7 @@ ul { list-style: none; }
   .section-title { font-size: 32px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
   .bouquets-grid, .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
-  .footer-main { gap: 36px; }
+  .site-footer .footer-main { padding-top: 52px; padding-bottom: 40px; gap: 34px; }
   .footer-bottom .container { text-align: center; }
   .footer-bottom p { text-wrap: balance; }
   .advantage { border-left: none; padding-left: 0; border-top: 1px solid rgba(26,24,23,0.12); padding-top: 20px; }
