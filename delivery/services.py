@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 
 import requests
 from django.conf import settings
@@ -6,6 +7,15 @@ from django.conf import settings
 from .models import DeliveryZone, ShopLocation
 
 EARTH_RADIUS_KM = 6371.0
+
+# Понятные пояснения для каждого исхода расчёта доставки.
+QUOTE_NOTES = {
+    'ok': '',
+    'maps_off': 'Стоимость доставки подтвердит менеджер после оформления.',
+    'no_shop': 'Стоимость доставки подтвердит менеджер после оформления.',
+    'geocode_failed': 'Адрес не распознан — стоимость доставки подтвердит менеджер.',
+    'out_of_zone': 'Адрес за пределами зон доставки — стоимость подтвердит менеджер.',
+}
 
 YANDEX_SUGGEST_URL = 'https://suggest-maps.yandex.ru/v1/suggest'
 YANDEX_GEOCODER_URL = 'https://geocode-maps.yandex.ru/1.x/'
@@ -39,6 +49,41 @@ def resolve_delivery_zone(latitude, longitude):
         .first()
     )
     return zone, round(distance_km, 2)
+
+
+def quote_delivery(address_text):
+    """Единственный авторитетный расчёт стоимости доставки — целиком на сервере,
+    по строке адреса. Клиент на цену повлиять не может (ни зоны, ни координат
+    от клиента не принимаем).
+
+    Возвращает (zone|None, price: Decimal, distance_km|None, state), где state:
+      ok             — адрес распознан и попал в активную зону, price = цена зоны
+      maps_off       — не настроен ключ Геокодера
+      no_shop        — не задана точка магазина
+      geocode_failed — пустой адрес / Яндекс недоступен / адрес не найден
+      out_of_zone    — адрес распознан, но расстояние вне всех активных зон
+    Во всех состояниях кроме ok price == 0 и стоимость доставки уточняет менеджер.
+    """
+    zero = Decimal('0')
+    address_text = (address_text or '').strip()
+    if not address_text:
+        return None, zero, None, 'geocode_failed'
+    if not settings.YANDEX_GEOCODER_API_KEY:
+        return None, zero, None, 'maps_off'
+    if ShopLocation.objects.first() is None:
+        return None, zero, None, 'no_shop'
+
+    try:
+        latitude, longitude = geocode_address(address_text)
+    except requests.RequestException:
+        latitude = longitude = None
+    if latitude is None or longitude is None:
+        return None, zero, None, 'geocode_failed'
+
+    zone, distance_km = resolve_delivery_zone(latitude, longitude)
+    if zone is None:
+        return None, zero, distance_km, 'out_of_zone'
+    return zone, zone.price, distance_km, 'ok'
 
 
 def suggest_addresses(query, bias_latitude=None, bias_longitude=None):

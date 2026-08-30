@@ -5,37 +5,49 @@
 
 {% block extra_head %}
 <script>
-  function updateDeliveryPrice(select) {
-    var option = select.options[select.selectedIndex];
-    var price = option ? parseInt(option.dataset.price || '0', 10) : 0;
-    var itemsTotal = parseInt(document.getElementById('checkout-items-total').dataset.amount, 10);
-    document.getElementById('checkout-delivery-price').textContent = price ? price.toLocaleString('ru-RU') + ' ₸' : 'выберите зону';
-    document.getElementById('checkout-total-price').textContent = (itemsTotal + price).toLocaleString('ru-RU') + ' ₸';
-  }
+  // Итоговую стоимость доставки считает сервер по адресу при отправке формы.
+  // Здесь — только предпросмотр в сводке заказа.
+  window.BPF_CHECKOUT = (function () {
+    var itemsTotal = 0;
+    function money(n) { return n.toLocaleString('ru-RU') + ' ₸'; }
+    function init() {
+      var el = document.getElementById('checkout-items-total');
+      itemsTotal = parseInt(el ? el.dataset.amount : '0', 10) || 0;
+    }
+    function showPreview(data) {
+      var priceEl = document.getElementById('checkout-delivery-price');
+      var totalEl = document.getElementById('checkout-total-price');
+      var noteEl = document.getElementById('delivery-note');
+      if (data && data.confirmed && typeof data.price === 'number') {
+        priceEl.textContent = data.price ? money(data.price) : 'бесплатно';
+        totalEl.textContent = money(itemsTotal + data.price);
+        if (noteEl) noteEl.textContent = data.zone ? ('Зона: ' + data.zone) : '';
+      } else {
+        priceEl.textContent = 'уточнит менеджер';
+        totalEl.textContent = money(itemsTotal) + ' + доставка';
+        if (noteEl) noteEl.textContent = (data && data.note) || '';
+      }
+    }
+    function reset() {
+      var priceEl = document.getElementById('checkout-delivery-price');
+      var totalEl = document.getElementById('checkout-total-price');
+      var noteEl = document.getElementById('delivery-note');
+      if (priceEl) priceEl.textContent = {% if yandex_enabled %}'рассчитается по адресу'{% else %}'уточнит менеджер'{% endif %};
+      if (totalEl) totalEl.textContent = money(itemsTotal){% if yandex_enabled %} + ' + доставка'{% endif %};
+      if (noteEl) noteEl.textContent = '';
+    }
+    return { init: init, showPreview: showPreview, reset: reset };
+  })();
+  document.addEventListener('DOMContentLoaded', function () {
+    window.BPF_CHECKOUT.init();
+    window.BPF_CHECKOUT.reset();
+  });
 
   {% if yandex_enabled %}
   document.addEventListener('DOMContentLoaded', function () {
     var addressInput = document.getElementById('delivery-address');
     var suggestList = document.getElementById('address-suggest-list');
-    var latField = document.getElementById('delivery-lat');
-    var lngField = document.getElementById('delivery-lng');
-    var zoneSelect = document.getElementById('delivery-zone');
-    var zoneNote = document.getElementById('delivery-zone-note');
     var debounceTimer = null;
-
-    var zoneNoteDefaultText = zoneNote ? zoneNote.textContent : '';
-
-    function lockZoneToAutoDetected() {
-      if (!zoneSelect) return;
-      zoneSelect.disabled = true;
-      if (zoneNote) zoneNote.textContent = 'Зона определена автоматически по адресу. Чтобы выбрать другую — измените адрес.';
-    }
-
-    function unlockZone() {
-      if (!zoneSelect) return;
-      zoneSelect.disabled = false;
-      if (zoneNote) zoneNote.textContent = zoneNoteDefaultText;
-    }
 
     function clearSuggestions() {
       suggestList.innerHTML = '';
@@ -44,10 +56,7 @@
 
     function renderSuggestions(results) {
       suggestList.innerHTML = '';
-      if (!results || !results.length) {
-        clearSuggestions();
-        return;
-      }
+      if (!results || !results.length) { clearSuggestions(); return; }
       results.forEach(function (item) {
         var li = document.createElement('li');
         li.textContent = item.label;
@@ -64,47 +73,33 @@
         .catch(clearSuggestions);
     }
 
-    function selectSuggestion(item) {
-      addressInput.value = item.label;
-      clearSuggestions();
-      latField.value = '';
-      lngField.value = '';
-
-      var param = item.address
-        ? 'address=' + encodeURIComponent(item.address)
-        : 'uri=' + encodeURIComponent(item.uri);
-      fetch('{% url "main:address_resolve" %}?' + param)
+    function previewPrice(addressText) {
+      if (!addressText || addressText.length < 5) { window.BPF_CHECKOUT.reset(); return; }
+      fetch('{% url "main:address_resolve" %}?address=' + encodeURIComponent(addressText))
         .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (data.lat && data.lng) {
-            latField.value = data.lat;
-            lngField.value = data.lng;
-          }
-          if (data.zone && zoneSelect) {
-            zoneSelect.value = String(data.zone.id);
-            updateDeliveryPrice(zoneSelect);
-            lockZoneToAutoDetected();
-          }
-        });
+        .then(function (data) { window.BPF_CHECKOUT.showPreview(data); })
+        .catch(function () { window.BPF_CHECKOUT.reset(); });
+    }
+
+    function selectSuggestion(item) {
+      addressInput.value = item.address || item.label;
+      clearSuggestions();
+      previewPrice(addressInput.value);
     }
 
     addressInput.addEventListener('input', function () {
-      latField.value = '';
-      lngField.value = '';
-      unlockZone();
+      window.BPF_CHECKOUT.reset();
       var query = addressInput.value.trim();
       clearTimeout(debounceTimer);
-      if (query.length < 3) {
-        clearSuggestions();
-        return;
-      }
+      if (query.length < 3) { clearSuggestions(); return; }
       debounceTimer = setTimeout(function () { fetchSuggestions(query); }, 300);
+    });
+    addressInput.addEventListener('change', function () {
+      previewPrice(addressInput.value.trim());
     });
 
     document.addEventListener('click', function (e) {
-      if (e.target !== addressInput && !suggestList.contains(e.target)) {
-        clearSuggestions();
-      }
+      if (e.target !== addressInput && !suggestList.contains(e.target)) clearSuggestions();
     });
   });
   {% endif %}
@@ -144,21 +139,18 @@
           <h2 class="checkout-section__title">Доставка</h2>
           <div class="form-field address-suggest">
             <label for="delivery-address">Адрес доставки</label>
-            <input type="text" id="delivery-address" name="delivery_address" placeholder="Начните вводить адрес" autocomplete="off" required>
+            <input type="text" id="delivery-address" name="delivery_address" placeholder="Город, улица, дом, квартира" autocomplete="off" required>
             <ul id="address-suggest-list" class="address-suggest__list" hidden></ul>
-            <input type="hidden" id="delivery-lat" name="delivery_lat" value="">
-            <input type="hidden" id="delivery-lng" name="delivery_lng" value="">
+            <span class="empty-note" id="delivery-note"></span>
           </div>
-          <div class="form-field">
-            <label for="delivery-zone">Зона доставки</label>
-            <select id="delivery-zone" name="delivery_zone" onchange="updateDeliveryPrice(this)" required>
-              <option value="">Выберите зону</option>
-              {% for zone in delivery_zones %}
-                <option value="{{ zone.pk }}" data-price="{{ zone.price|stringformat:'d' }}">{{ zone.name }} — {{ zone.delivery_time_minutes }} мин · {{ zone.price|kzt }}</option>
-              {% endfor %}
-            </select>
-            <span class="empty-note" id="delivery-zone-note">Выберите адрес из подсказок — зона подставится сама. Иначе выберите вручную.</span>
-          </div>
+          <p class="empty-note">
+            {% if yandex_enabled %}
+              Стоимость доставки считается по адресу автоматически. Если адрес не
+              распознается, менеджер уточнит сумму и пришлёт её вместе с подтверждением.
+            {% else %}
+              Стоимость доставки согласует менеджер после оформления заказа.
+            {% endif %}
+          </p>
           {% if details.delivery_date or details.delivery_time or details.card_text %}
           <p class="empty-note">
             {% if details.delivery_date %}Дата доставки: {{ details.delivery_date }}. {% endif %}
@@ -183,7 +175,7 @@
         </div>
         <div class="cart-summary__row">
           <span>Доставка</span>
-          <span id="checkout-delivery-price">выберите зону</span>
+          <span id="checkout-delivery-price">уточнит менеджер</span>
         </div>
         <div class="cart-summary__row cart-summary__row--total">
           <span>Итого</span>

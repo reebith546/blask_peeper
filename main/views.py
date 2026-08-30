@@ -9,8 +9,8 @@ import requests
 
 from catalog.models import Category, Product
 from content.models import HomepageBlock
-from delivery.models import DeliveryZone, ShopLocation
-from delivery.services import geocode_address, geocode_uri, resolve_delivery_zone, suggest_addresses
+from delivery.models import ShopLocation
+from delivery.services import QUOTE_NOTES, quote_delivery, suggest_addresses
 from orders.models import Order, OrderItem
 from payments import gateway
 from reviews.models import Review
@@ -123,10 +123,8 @@ def checkout(request):
     if len(cart) == 0:
         return redirect('catalog:product_list')
 
-    delivery_zones = DeliveryZone.objects.filter(is_active=True).order_by('order')
     context = {
         'cart': cart,
-        'delivery_zones': delivery_zones,
         'details': cart.get_details(),
         'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
         'payments_enabled': gateway.payments_enabled(),
@@ -152,44 +150,32 @@ def checkout(request):
         items_total = cart.get_total_price()
         details = cart.get_details()
         comment = request.POST.get('comment', '').strip()
+        delivery_address = request.POST.get('delivery_address', '').strip()
 
-        # Координаты используются только на лету — сохранять их в БД нельзя
-        # по условиям бесплатного тарифа Яндекс Карт (см. комментарий в модели Order).
-        delivery_lat = request.POST.get('delivery_lat', '').strip()
-        delivery_lng = request.POST.get('delivery_lng', '').strip()
-
-        if delivery_lat and delivery_lng:
-            # Координаты пришли с виджета подсказок адреса (Яндекс Карты) — это
-            # авторитетный источник цены, ручной выбор зоны игнорируется.
-            delivery_zone, _distance_km = resolve_delivery_zone(delivery_lat, delivery_lng)
-            if delivery_zone is None:
-                comment = (
-                    'Автоматический расчёт доставки недоступен (адрес вне зоны доставки '
-                    'или не настроена точка магазина) — уточнить стоимость вручную.\n' + comment
-                ).strip()
-        else:
-            # Координаты не пришли (виджет недоступен или клиент не выбрал
-            # подсказку) — доверяем ручному выбору зоны, но помечаем заказ,
-            # чтобы менеджер сверил адрес и стоимость перед подтверждением.
-            zone_id = request.POST.get('delivery_zone')
-            delivery_zone = delivery_zones.filter(pk=zone_id).first()
+        # Единственный источник стоимости доставки — расчёт на сервере по адресу.
+        # Никаких зон/координат/цен от клиента не принимаем: поля формы,
+        # относящиеся к цене доставки, игнорируются полностью.
+        delivery_zone, delivery_price, _distance_km, quote_state = quote_delivery(delivery_address)
+        delivery_confirmed = quote_state == 'ok'
+        if not delivery_confirmed:
             comment = (
-                'Зона доставки выбрана вручную, без проверки адреса по карте — '
-                'сверить с клиентом при подтверждении заказа.\n' + comment
+                f'СТОИМОСТЬ ДОСТАВКИ НЕ РАССЧИТАНА ({quote_state}) — согласовать с '
+                f'клиентом перед подтверждением заказа.\n' + comment
             ).strip()
 
-        delivery_price = delivery_zone.price if delivery_zone else 0
-
         order = Order.objects.create(
+            # В оплату уводим только заказ с подтверждённой суммой доставки —
+            # иначе не с чем идти в платёжный шлюз.
             status=(
-                Order.Status.PENDING_PAYMENT if gateway.payments_enabled()
+                Order.Status.PENDING_PAYMENT
+                if (gateway.payments_enabled() and delivery_confirmed)
                 else Order.Status.NEW
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
             customer_phone=request.POST.get('customer_phone', '').strip(),
             customer_email=customer_email,
             delivery_zone=delivery_zone,
-            delivery_address=request.POST.get('delivery_address', '').strip(),
+            delivery_address=delivery_address,
             delivery_date=details.get('delivery_date') or None,
             delivery_time=details.get('delivery_time', ''),
             delivery_price=delivery_price,
@@ -206,8 +192,10 @@ def checkout(request):
             )
         cart.clear()
 
-        if not gateway.payments_enabled():
-            # Онлайн-оплата не подключена — менеджер свяжется и примет оплату.
+        if not (gateway.payments_enabled() and delivery_confirmed):
+            # Онлайн-оплата выключена ЛИБО стоимость доставки ещё не подтверждена —
+            # заказ уходит менеджеру: он согласует сумму и (при необходимости)
+            # пришлёт ссылку на оплату.
             return redirect('main:order_success', order_id=order.pk)
 
         # Онлайн-оплата: создаём платёж и уводим клиента на форму шлюза.
@@ -268,30 +256,19 @@ def address_suggest_ajax(request):
 
 
 def address_resolve_ajax(request):
-    """По адресу/uri подсказки — геокодирует и подбирает зону/цену. Ничего не сохраняет в БД."""
+    """Предпросмотр стоимости доставки по адресу — только для показа на чекауте.
+    Не авторитетно: итоговую сумму считает checkout заново на сервере при
+    отправке формы (quote_delivery). Координаты клиенту не отдаём."""
     address = request.GET.get('address', '').strip()
-    uri = request.GET.get('uri', '').strip()
-    if not address and not uri:
-        return JsonResponse({'zone': None}, status=400)
-
-    try:
-        lat, lng = geocode_address(address) if address else geocode_uri(uri)
-    except requests.RequestException:
-        lat = lng = None
-
-    if lat is None or lng is None:
-        return JsonResponse({'zone': None, 'lat': None, 'lng': None})
-
-    zone, _distance_km = resolve_delivery_zone(lat, lng)
-    payload = {'lat': lat, 'lng': lng, 'zone': None}
-    if zone is not None:
-        payload['zone'] = {
-            'id': zone.pk,
-            'name': zone.name,
-            'price': int(zone.price),
-            'delivery_time_minutes': zone.delivery_time_minutes,
-        }
-    return JsonResponse(payload)
+    zone, price, _distance_km, state = quote_delivery(address)
+    return JsonResponse({
+        'state': state,
+        'confirmed': state == 'ok',
+        'price': int(price) if state == 'ok' else None,
+        'zone': zone.name if zone is not None else None,
+        'delivery_time_minutes': zone.delivery_time_minutes if zone is not None else None,
+        'note': QUOTE_NOTES.get(state, ''),
+    })
 
 
 def order_success(request, order_id):

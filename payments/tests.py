@@ -185,8 +185,10 @@ class CheckoutWithPaymentsTests(TestCase):
         data.update(over)
         return self.client.post(reverse('main:checkout'), data)
 
+    @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
-    def test_checkout_creates_pending_order_and_redirects_to_form(self, mock_post):
+    def test_checkout_creates_pending_order_and_redirects_to_form(self, mock_post, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
         mock_post.return_value = _fake_response(
             {'status': 0, 'form_url': 'https://pay.example.test/xyz', 'order_id': 'GW-1'})
         self._fill_cart()
@@ -212,8 +214,23 @@ class CheckoutWithPaymentsTests(TestCase):
         self.assertContains(resp, 'Укажите email')
         self.assertEqual(Order.objects.count(), 0)
 
+    @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
-    def test_gateway_failure_marks_order_and_shows_failed_page(self, mock_post):
+    def test_unconfirmed_delivery_never_starts_payment(self, mock_post, quote):
+        # Стоимость доставки не рассчитана — заказ идёт менеджеру, шлюз не зовётся.
+        quote.return_value = (None, Decimal('0'), None, 'out_of_zone')
+        self._fill_cart()
+        resp = self._checkout()
+        order = Order.objects.get()
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertEqual(order.payments.count(), 0)
+        mock_post.assert_not_called()
+        self.assertRedirects(resp, reverse('main:order_success', args=[order.pk]))
+
+    @patch('main.views.quote_delivery')
+    @patch('payments.gateway.requests.post')
+    def test_gateway_failure_marks_order_and_shows_failed_page(self, mock_post, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
         mock_post.return_value = _fake_response({'status': -1, 'err': 'declined'})
         self._fill_cart()
         resp = self._checkout()
@@ -373,8 +390,10 @@ class CheckoutUsesDbConfigTests(TestCase):
             name='Р', radius_from_km=0, radius_to_km=5, price=Decimal('0'),
         )
 
+    @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
-    def test_checkout_calls_gateway_with_db_credentials(self, mock_post):
+    def test_checkout_calls_gateway_with_db_credentials(self, mock_post, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
         mock_post.return_value = _fake_response(
             {'status': 0, 'form_url': 'https://db-gateway.test/form/1', 'order_id': 'X1'})
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})

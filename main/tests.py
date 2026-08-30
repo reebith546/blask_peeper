@@ -1,9 +1,10 @@
 import io
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
@@ -97,7 +98,6 @@ class CheckoutFlowTests(TestCase):
             'customer_name': 'Анна',
             'customer_phone': '+77070000000',
             'delivery_address': 'ул. Тест, 1',
-            'delivery_zone': self.zone.pk,
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Order.objects.count(), 0)
@@ -105,98 +105,80 @@ class CheckoutFlowTests(TestCase):
         # Корзина не очищена — клиент может исправить и отправить повторно.
         self.assertEqual(len(self.client.get(reverse('main:cart')).context['cart']), 1)
 
-    def test_full_checkout_creates_order_and_clears_cart(self):
+    # ---- стоимость доставки: только сервер, клиент повлиять не может ----
+
+    def _checkout(self, **extra):
+        data = {
+            'customer_name': 'Анна', 'customer_phone': '+77070000000',
+            'legal_consent': 'yes', 'delivery_address': 'г. Алматы, ул. Абая, 10',
+        }
+        data.update(extra)
+        return self.client.post(reverse('main:checkout'), data)
+
+    @patch('main.views.quote_delivery')
+    def test_full_checkout_uses_server_computed_delivery_price(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.2, 'ok')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
         self.client.post(reverse('main:cart_details'), {
-            'delivery_date': '2026-08-20',
-            'delivery_time': '14:00-16:00',
-            'card_text': 'Поздравляю!',
+            'delivery_date': '2026-08-20', 'delivery_time': '14:00-16:00', 'card_text': 'Поздравляю!',
         })
-        response = self.client.post(reverse('main:checkout'), {
-            'customer_name': 'Анна',
-            'customer_phone': '+77070000000',
-            'legal_consent': 'yes',
-            'delivery_address': 'ул. Тест, 1',
-            'delivery_zone': self.zone.pk,
-        })
+        response = self._checkout()
 
-        self.assertEqual(Order.objects.count(), 1)
         order = Order.objects.get()
         self.assertEqual(order.items.count(), 1)
+        self.assertEqual(order.delivery_zone, self.zone)
         self.assertEqual(order.delivery_price, self.zone.price)
         self.assertEqual(order.total_price, self.product.price + self.zone.price)
         self.assertEqual(order.card_text, 'Поздравляю!')
         self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+        self.assertContains(self.client.get(reverse('main:cart')), 'Корзина пока пуста')
 
-        cart_response = self.client.get(reverse('main:cart'))
-        self.assertContains(cart_response, 'Корзина пока пуста')
-
-    def test_checkout_with_coordinates_resolves_zone_automatically(self):
-        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
-        # Точка в паре сотен метров от магазина — должна попасть в зону 0–5 км.
+    @patch('main.views.quote_delivery')
+    def test_client_cannot_override_zone_or_price_via_form(self, quote):
+        # Сервер посчитал дорогую зону, а клиент подсунул дешёвую + свою цену.
+        quote.return_value = (self.far_zone, self.far_zone.price, 9.0, 'ok')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
-        response = self.client.post(reverse('main:checkout'), {
-            'customer_name': 'Анна',
-            'customer_phone': '+77070000000',
-            'legal_consent': 'yes',
-            'delivery_address': 'ул. Тест, 1',
-            'delivery_lat': '43.240000',
-            'delivery_lng': '76.891000',
-        })
+        self._checkout(
+            delivery_zone=self.zone.pk,      # мусор — игнорируется
+            delivery_price='1',              # мусор — игнорируется
+            total_price='1',                 # мусор — игнорируется
+        )
         order = Order.objects.get()
-        self.assertEqual(order.delivery_zone, self.zone)
-        self.assertEqual(order.delivery_price, self.zone.price)
-        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+        self.assertEqual(order.delivery_zone, self.far_zone)
+        self.assertEqual(order.delivery_price, self.far_zone.price)
+        self.assertEqual(order.total_price, self.product.price + self.far_zone.price)
 
-    def test_checkout_with_coordinates_outside_all_zones_falls_back_to_manual_review(self):
-        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
-        # Точка в ~100 км от магазина — вне всех настроенных зон.
+    @patch('main.views.quote_delivery')
+    def test_out_of_zone_creates_request_without_price(self, quote):
+        quote.return_value = (None, Decimal('0'), 140.0, 'out_of_zone')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
-        self.client.post(reverse('main:checkout'), {
-            'customer_name': 'Анна',
-            'customer_phone': '+77070000000',
-            'legal_consent': 'yes',
-            'delivery_address': 'Далеко',
-            'delivery_lat': '44.238949',
-            'delivery_lng': '76.889709',
-        })
+        response = self._checkout()
         order = Order.objects.get()
         self.assertIsNone(order.delivery_zone)
-        self.assertEqual(order.delivery_price, 0)
-        self.assertIn('уточнить стоимость вручную', order.comment)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertIn('НЕ РАССЧИТАНА', order.comment)
+        self.assertIn('out_of_zone', order.comment)
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
 
-    def test_manual_zone_without_coordinates_is_flagged_for_staff_review(self):
+    @override_settings(YANDEX_GEOCODER_API_KEY='', YANDEX_SUGGEST_API_KEY='')
+    def test_maps_not_configured_creates_request(self):
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
-        self.client.post(reverse('main:checkout'), {
-            'customer_name': 'Анна',
-            'customer_phone': '+77070000000',
-            'legal_consent': 'yes',
-            'delivery_address': 'ул. Тест, 1',
-            'delivery_zone': self.zone.pk,
-        })
+        self._checkout()
         order = Order.objects.get()
-        self.assertEqual(order.delivery_zone, self.zone)
-        self.assertIn('без проверки адреса', order.comment)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertIn('maps_off', order.comment)
 
-    def test_checkout_ignores_tampered_manual_zone_when_coordinates_present(self):
-        ShopLocation.objects.create(name='Магазин', latitude=Decimal('43.238949'), longitude=Decimal('76.889709'))
+    @patch('main.views.quote_delivery')
+    def test_geocode_failure_creates_request(self, quote):
+        quote.return_value = (None, Decimal('0'), None, 'geocode_failed')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
-        # Координаты соответствуют self.zone (0-5 км), но в форме подсунут id
-        # far_zone (дешевле/дороже — тут важно, что он просто другой) — сервер
-        # должен полностью проигнорировать это поле и посчитать зону сам.
-        self.client.post(reverse('main:checkout'), {
-            'customer_name': 'Анна',
-            'customer_phone': '+77070000000',
-            'legal_consent': 'yes',
-            'delivery_address': 'ул. Тест, 1',
-            'delivery_lat': '43.240000',
-            'delivery_lng': '76.891000',
-            'delivery_zone': self.far_zone.pk,
-        })
+        self._checkout(delivery_address='кривой адрес')
         order = Order.objects.get()
-        self.assertEqual(order.delivery_zone, self.zone)
-        self.assertEqual(order.delivery_price, self.zone.price)
-        self.assertNotEqual(order.delivery_zone, self.far_zone)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertIn('geocode_failed', order.comment)
 
 
 class PageSmokeTests(TestCase):
