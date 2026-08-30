@@ -48,11 +48,17 @@
     {% else %}
       <span class="eyebrow">Спасибо!</span>
       <h1 class="section-title">Заказ №{{ order.pk }} принят</h1>
-      {% if order.delivery_zone %}
+      {% if order.delivery_zone and order.delivery_price %}
       <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
         Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
         деталей и оплаты. Итоговая сумма заказа — {{ order.total_price|kzt }}
         (в том числе доставка {{ order.delivery_price|kzt }}).
+      </p>
+      {% elif order.delivery_zone %}
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Доставка по вашему адресу («{{ order.delivery_zone.name }}») — по согласованию с менеджером.
+        Он свяжется с вами по телефону {{ order.customer_phone }}, назовёт стоимость доставки,
+        итоговую сумму (товары — {{ order.total_price|kzt }} + доставка) и способ оплаты.
       </p>
       {% else %}
       <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">

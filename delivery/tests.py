@@ -157,3 +157,40 @@ class QuoteDeliveryTests(TestCase):
         self.assertEqual(zone, self.zone)
         self.assertEqual(price, Decimal('1500'))
         self.assertIsInstance(price, Decimal)
+
+    @override_settings(YANDEX_GEOCODER_API_KEY='key')
+    @patch('delivery.services.geocode_address', return_value=(44.5, 76.8))  # ~140 км
+    def test_on_request_zone(self, _g):
+        far = DeliveryZone.objects.create(
+            name='За городом', radius_from_km=100, radius_to_km=5000,
+            price=None, price_on_request=True,
+        )
+        zone, price, dist, state = quote_delivery(self.ADDR)
+        self.assertEqual(state, 'on_request')
+        self.assertEqual(zone, far)          # зона известна — нужна менеджеру
+        self.assertEqual(price, Decimal('0'))
+
+    @override_settings(YANDEX_GEOCODER_API_KEY='key')
+    @patch('delivery.services.geocode_address', return_value=(43.240000, 76.891000))
+    def test_on_request_flag_wins_over_price_even_if_price_set(self, _g):
+        self.zone.price_on_request = True
+        self.zone.save()
+        _zone, price, _dist, state = quote_delivery(self.ADDR)
+        self.assertEqual(state, 'on_request')
+        self.assertEqual(price, Decimal('0'))
+
+
+class DeliveryZoneValidationTests(TestCase):
+    def test_price_required_unless_on_request(self):
+        from django.core.exceptions import ValidationError
+
+        zone = DeliveryZone(name='Без цены', radius_from_km=0, radius_to_km=5, price=None)
+        with self.assertRaises(ValidationError):
+            zone.full_clean()
+
+    def test_on_request_zone_valid_without_price(self):
+        zone = DeliveryZone(
+            name='За городом', radius_from_km=100, radius_to_km=5000,
+            price=None, price_on_request=True,
+        )
+        zone.full_clean()  # не должно бросать

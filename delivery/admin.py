@@ -12,6 +12,12 @@ class ShopLocationAdmin(AuditModelAdmin, admin.ModelAdmin):
 
 @admin.register(DeliveryZone)
 class DeliveryZoneAdmin(AuditModelAdmin, admin.ModelAdmin):
-    list_display = ('name', 'radius_from_km', 'radius_to_km', 'price', 'delivery_time_minutes', 'order', 'is_active')
-    list_editable = ('radius_from_km', 'radius_to_km', 'price', 'delivery_time_minutes', 'order', 'is_active')
+    list_display = (
+        'name', 'radius_from_km', 'radius_to_km', 'price', 'price_on_request',
+        'delivery_time_minutes', 'order', 'is_active',
+    )
+    list_editable = (
+        'radius_from_km', 'radius_to_km', 'price', 'price_on_request',
+        'delivery_time_minutes', 'order', 'is_active',
+    )
     search_fields = ('name',)

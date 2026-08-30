@@ -23,7 +23,7 @@
         totalEl.textContent = money(itemsTotal + data.price);
         if (noteEl) noteEl.textContent = data.zone ? ('Зона: ' + data.zone) : '';
       } else {
-        priceEl.textContent = 'уточнит менеджер';
+        priceEl.textContent = (data && data.state === 'on_request') ? 'по согласованию' : 'уточнит менеджер';
         totalEl.textContent = money(itemsTotal) + ' + доставка';
         if (noteEl) noteEl.textContent = (data && data.note) || '';
       }

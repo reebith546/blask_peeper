@@ -26,9 +26,17 @@ class DeliveryZone(models.Model):
     """
 
     name = models.CharField('Название зоны', max_length=150)
-    radius_from_km = models.DecimalField('От, км', max_digits=5, decimal_places=2, default=0)
-    radius_to_km = models.DecimalField('До, км', max_digits=5, decimal_places=2, default=10)
-    price = models.DecimalField('Цена доставки, ₸', max_digits=10, decimal_places=2)
+    radius_from_km = models.DecimalField('От, км', max_digits=7, decimal_places=2, default=0)
+    radius_to_km = models.DecimalField('До, км', max_digits=7, decimal_places=2, default=10)
+    price = models.DecimalField(
+        'Цена доставки, ₸', max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Не заполняется, если доставка по согласованию с менеджером.',
+    )
+    price_on_request = models.BooleanField(
+        'Доставка по согласованию', default=False,
+        help_text='Фиксированной цены нет: заказ уходит менеджеру, он согласует стоимость '
+                  '(например, для дальних адресов — за городом).',
+    )
     delivery_time_minutes = models.PositiveIntegerField('Время доставки, мин', default=60)
     order = models.PositiveIntegerField('Порядок сортировки', default=0)
     is_active = models.BooleanField('Активна', default=True)
@@ -39,4 +47,11 @@ class DeliveryZone(models.Model):
         ordering = ['radius_from_km', 'order']
 
     def __str__(self):
-        return f'{self.name} ({self.radius_from_km}–{self.radius_to_km} км) — {self.price} ₸'
+        tail = 'по согласованию' if self.price_on_request else f'{self.price} ₸'
+        return f'{self.name} ({self.radius_from_km}–{self.radius_to_km} км) — {tail}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if not self.price_on_request and self.price is None:
+            raise ValidationError({'price': 'Укажите цену или отметьте «Доставка по согласованию».'})

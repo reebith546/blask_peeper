@@ -157,7 +157,12 @@ def checkout(request):
         # относящиеся к цене доставки, игнорируются полностью.
         delivery_zone, delivery_price, _distance_km, quote_state = quote_delivery(delivery_address)
         delivery_confirmed = quote_state == 'ok'
-        if not delivery_confirmed:
+        if quote_state == 'on_request':
+            comment = (
+                f'ДОСТАВКА ПО СОГЛАСОВАНИЮ (зона «{delivery_zone.name}») — '
+                f'связаться с клиентом, назвать стоимость.\n' + comment
+            ).strip()
+        elif not delivery_confirmed:
             comment = (
                 f'СТОИМОСТЬ ДОСТАВКИ НЕ РАССЧИТАНА ({quote_state}) — согласовать с '
                 f'клиентом перед подтверждением заказа.\n' + comment

@@ -11,6 +11,7 @@ EARTH_RADIUS_KM = 6371.0
 # Понятные пояснения для каждого исхода расчёта доставки.
 QUOTE_NOTES = {
     'ok': '',
+    'on_request': 'Доставка по этому адресу — по согласованию с менеджером.',
     'maps_off': 'Стоимость доставки подтвердит менеджер после оформления.',
     'no_shop': 'Стоимость доставки подтвердит менеджер после оформления.',
     'geocode_failed': 'Адрес не распознан — стоимость доставки подтвердит менеджер.',
@@ -58,6 +59,8 @@ def quote_delivery(address_text):
 
     Возвращает (zone|None, price: Decimal, distance_km|None, state), где state:
       ok             — адрес распознан и попал в активную зону, price = цена зоны
+      on_request     — попал в зону «доставка по согласованию» (напр. за городом):
+                       zone задана, price == 0, оформляем как заявку менеджеру
       maps_off       — не настроен ключ Геокодера
       no_shop        — не задана точка магазина
       geocode_failed — пустой адрес / Яндекс недоступен / адрес не найден
@@ -83,6 +86,8 @@ def quote_delivery(address_text):
     zone, distance_km = resolve_delivery_zone(latitude, longitude)
     if zone is None:
         return None, zero, distance_km, 'out_of_zone'
+    if zone.price_on_request:
+        return zone, zero, distance_km, 'on_request'
     return zone, zone.price, distance_km, 'ok'
 
 

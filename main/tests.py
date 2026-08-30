@@ -180,6 +180,24 @@ class CheckoutFlowTests(TestCase):
         self.assertEqual(order.delivery_price, Decimal('0'))
         self.assertIn('geocode_failed', order.comment)
 
+    @patch('main.views.quote_delivery')
+    def test_on_request_zone_creates_request_and_keeps_zone_label(self, quote):
+        far = DeliveryZone.objects.create(
+            name='За городом', radius_from_km=100, radius_to_km=5000,
+            price=None, price_on_request=True,
+        )
+        quote.return_value = (far, Decimal('0'), 150.0, 'on_request')
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        response = self._checkout()
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone, far)          # менеджер видит зону
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertIn('ПО СОГЛАСОВАНИЮ', order.comment)
+        self.assertIn('За городом', order.comment)
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+
 
 class PageSmokeTests(TestCase):
     def test_home_page_loads(self):
