@@ -12,13 +12,13 @@
       <div class="product-slider__stage">
         {% if gallery %}
         <button type="button" class="product-slider__nav product-slider__nav--prev" data-slider-prev aria-label="Предыдущее фото">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         {% endif %}
         <img class="product-slider__main" id="product-slider-main" src="{{ product.image.url }}" alt="{{ product.name }}">
         {% if gallery %}
         <button type="button" class="product-slider__nav product-slider__nav--next" data-slider-next aria-label="Следующее фото">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         {% endif %}
       </div>
