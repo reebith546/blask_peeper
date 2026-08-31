@@ -4,33 +4,36 @@ from django.db import models
 
 from orders.models import Order
 
-DEFAULT_API_BASE = 'https://api-gateway.smartcore.pro'
+DEFAULT_API_BASE = 'https://api.tiptoppay.kz'
 
 
 class PaymentSettings(models.Model):
-    """Реквизиты платёжного шлюза, редактируемые владельцем в админке.
+    """Реквизиты TipTop Pay, редактируемые владельцем в админке.
 
-    Синглтон (всегда одна запись, pk=1). Если заполнены account + merchant_key +
-    secret и включён флаг — онлайн-оплата работает с этими значениями.
-    Значения из .env используются только как запасной вариант, когда запись
-    не заполнена (см. payments/gateway.get_config).
+    Синглтон (всегда одна запись, pk=1). Если заполнены Public ID + API Secret
+    и включён флаг — онлайн-оплата работает с этими значениями. Значения из
+    .env используются только как запасной вариант, когда запись не заполнена
+    (см. payments/gateway.get_config).
+
+    У TipTop Pay всего два реквизита — Public ID и API Secret (он же пароль API
+    и ключ подписи webhook-уведомлений). Авторизация — HTTP Basic
+    base64(PublicId:ApiSecret).
     """
 
     is_enabled = models.BooleanField(
         'Принимать онлайн-оплату', default=False,
         help_text='Выключите, чтобы временно вернуться к оплате через менеджера.',
     )
-    account = models.CharField(
-        'Account (имя мерчант-аккаунта)', max_length=100, blank=True,
-        help_text='Для теста — с суффиксом «-sandbox».',
+    public_id = models.CharField(
+        'Public ID', max_length=200, blank=True,
+        help_text='Из личного кабинета TipTop Pay, вида «pk_…».',
     )
-    merchant_key = models.CharField('Merchant Key (логин API)', max_length=200, blank=True)
-    secret = models.CharField(
-        'Secret (пароль API и ключ подписи)', max_length=255, blank=True,
+    api_secret = models.CharField(
+        'API Secret (пароль API и ключ подписи)', max_length=255, blank=True,
         help_text='Хранится в базе. Не показывается после сохранения.',
     )
     api_base = models.URLField(
-        'Адрес API шлюза', max_length=200, blank=True, default=DEFAULT_API_BASE,
+        'Адрес API', max_length=200, blank=True, default=DEFAULT_API_BASE,
         help_text='Меняйте, только если у вашего аккаунта другой домен API.',
     )
     currency = models.CharField('Валюта', max_length=3, default='KZT')
@@ -54,15 +57,15 @@ class PaymentSettings(models.Model):
 
     @property
     def is_ready(self):
-        return bool(self.is_enabled and self.account and self.merchant_key and self.secret)
+        return bool(self.is_enabled and self.public_id and self.api_secret)
 
 
 class Payment(models.Model):
-    """Платёж по заказу через шлюз TipTop Pay / SmartCore.
+    """Платёж по заказу через TipTop Pay.
 
     Один заказ может иметь несколько Payment — если клиент повторяет неудачную
     оплату, создаётся новый Payment с новым invoice_id. Источник правды по
-    статусу — подписанный callback от шлюза (см. payments/gateway.py).
+    статусу — подписанное webhook-уведомление от шлюза (см. payments/gateway.py).
     """
 
     class Status(models.TextChoices):
@@ -83,11 +86,11 @@ class Payment(models.Model):
     # Наш идентификатор платежа — уходит в шлюз как order_id и возвращается
     # в callback как orderId. По нему находим Payment при обработке уведомления.
     invoice_id = models.CharField('Наш ID платежа', max_length=64, unique=True)
-    # ID платежа на стороне шлюза (order_id из ответа initPayment).
+    # ID счёта на стороне шлюза (Model.Id из ответа /orders/create).
     external_id = models.CharField(
-        'ID платежа в шлюзе', max_length=100, blank=True, unique=True, null=True,
+        'ID счёта в шлюзе', max_length=100, blank=True, unique=True, null=True,
     )
-    # Ссылка на форму оплаты, выданная initPayment — по ней клиент платит.
+    # Ссылка на форму оплаты (Model.Url из /orders/create) — по ней клиент платит.
     form_url = models.URLField('Ссылка на форму оплаты', max_length=500, blank=True)
     raw_callback_data = models.JSONField('Данные callback-уведомления', blank=True, null=True)
 

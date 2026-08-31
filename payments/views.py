@@ -1,7 +1,6 @@
-import json
 import logging
 
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -13,43 +12,38 @@ from .models import Payment
 
 logger = logging.getLogger('payments')
 
-
-def _client_ip(request):
-    fwd = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    if fwd:
-        return fwd.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
+# Ответ, которого TipTop Pay ждёт для «уведомление принято».
+_ACK = {'code': 0}
 
 
 @csrf_exempt
 @require_POST
 def payment_callback(request):
-    """Уведомление шлюза о результате платежа. Защищено HMAC-подписью, не CSRF."""
-    ctype = (request.content_type or '').lower()
-    if 'application/json' in ctype:
-        try:
-            params = json.loads(request.body.decode('utf-8'))
-        except (ValueError, UnicodeDecodeError):
-            return HttpResponseBadRequest('bad body')
-    else:
-        params = request.POST.dict()
-
-    if not gateway.verify_signature(params):
-        logger.warning('callback с неверной подписью: %s', params.get('orderId'))
+    """Webhook TipTop Pay (pay / fail / refund / check). Защищён HMAC-подписью,
+    не CSRF. Тип уведомления берём из ?type= (его задаём в адресе в ЛК шлюза),
+    иначе выводим из поля Status. В ответ шлюз ждёт JSON {"code": 0}."""
+    raw_body = request.body
+    provided = request.headers.get('Content-HMAC') or request.headers.get('X-Content-HMAC')
+    if not gateway.verify_signature(raw_body, provided):
+        logger.warning('webhook с неверной подписью Content-HMAC')
         return HttpResponseBadRequest('bad signature')
 
-    invoice_id = params.get('orderId') or params.get('order_id')
+    params = request.POST.dict()
+    notification_type = request.GET.get('type', '')
+    invoice_id = params.get('InvoiceId')
     payment = Payment.objects.filter(invoice_id=invoice_id).select_related('order').first()
     if payment is None:
-        logger.warning('callback по неизвестному платежу: %s', invoice_id)
-        return HttpResponse('OK')  # подтверждаем приём, повторять не нужно
+        logger.warning('webhook по неизвестному платежу: %s', invoice_id)
+        return JsonResponse(_ACK)  # приняли, повторять не нужно
 
     try:
-        gateway.apply_callback(payment, params, source='callback')
-    except Exception:  # noqa: BLE001 — callback обязан вернуть 200, иначе шлюз будет ретраить
-        logger.exception('ошибка обработки callback по %s', invoice_id)
+        gateway.apply_callback(
+            payment, params, source='callback', notification_type=notification_type,
+        )
+    except Exception:  # noqa: BLE001 — webhook обязан вернуть 200, иначе шлюз будет ретраить
+        logger.exception('ошибка обработки webhook по %s', invoice_id)
 
-    return HttpResponse('OK')
+    return JsonResponse(_ACK)
 
 
 def payment_failed(request, order_id):
@@ -68,15 +62,11 @@ def payment_retry(request, order_id):
     try:
         form_url = gateway.init_payment(
             payment,
-            client_ip=_client_ip(request),
-            success_url=request.build_absolute_uri(
-                _reverse_success(order.pk)),
-            fail_url=request.build_absolute_uri(
-                _reverse_failed(order.pk)),
-            callback_url=request.build_absolute_uri('/payments/callback/'),
+            success_url=request.build_absolute_uri(_reverse_success(order.pk)),
+            fail_url=request.build_absolute_uri(_reverse_failed(order.pk)),
         )
     except gateway.PaymentGatewayError:
-        logger.exception('retry initPayment не удался для заказа %s', order.pk)
+        logger.exception('retry orders/create не удался для заказа %s', order.pk)
         return redirect('payments:failed', order_id=order.pk)
 
     order.status = Order.Status.PENDING_PAYMENT

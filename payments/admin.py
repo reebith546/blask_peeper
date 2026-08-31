@@ -40,8 +40,8 @@ class PaymentAdmin(AuditModelAdmin, admin.ModelAdmin):
 
 class PaymentSettingsForm(forms.ModelForm):
     # Секрет не отдаём обратно в форму — только приём. Пусто = не менять.
-    secret = forms.CharField(
-        label='Secret (пароль API и ключ подписи)',
+    api_secret = forms.CharField(
+        label='API Secret (пароль API и ключ подписи)',
         required=False,
         widget=forms.PasswordInput(render_value=False, attrs={'autocomplete': 'new-password'}),
         help_text='Оставьте пустым, чтобы сохранить текущее значение.',
@@ -49,12 +49,12 @@ class PaymentSettingsForm(forms.ModelForm):
 
     class Meta:
         model = PaymentSettings
-        fields = ('is_enabled', 'account', 'merchant_key', 'secret', 'api_base', 'currency')
+        fields = ('is_enabled', 'public_id', 'api_secret', 'api_base', 'currency')
 
-    def clean_secret(self):
-        value = self.cleaned_data.get('secret', '')
+    def clean_api_secret(self):
+        value = self.cleaned_data.get('api_secret', '')
         if not value and self.instance and self.instance.pk:
-            return self.instance.secret  # ничего не ввели — оставляем как было
+            return self.instance.api_secret  # ничего не ввели — оставляем как было
         return value
 
 
@@ -64,17 +64,18 @@ class PaymentSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
 
     form = PaymentSettingsForm
     # Секрет исключаем из diff «Журнала действий», чтобы не светить его значение.
-    audit_exclude_fields = ('secret',)
+    audit_exclude_fields = ('api_secret',)
     readonly_fields = ('callback_url', 'status_note', 'updated_at')
     fieldsets = (
         ('Приём оплаты', {'fields': ('is_enabled', 'status_note')}),
-        ('Реквизиты из личного кабинета шлюза', {
-            'fields': ('account', 'merchant_key', 'secret', 'api_base', 'currency'),
+        ('Реквизиты из личного кабинета TipTop Pay', {
+            'fields': ('public_id', 'api_secret', 'api_base', 'currency'),
         }),
-        ('Для кабинета шлюза', {
+        ('Для кабинета TipTop Pay', {
             'fields': ('callback_url',),
-            'description': 'Этот адрес укажите в настройках уведомлений (callback) '
-                           'в личном кабинете платёжного шлюза.',
+            'description': 'В личном кабинете TipTop Pay в настройках уведомлений '
+                           '(webhook) укажите эти адреса — по одному на тип события. '
+                           'Схема аутентификации уведомлений — HMAC.',
         }),
         (None, {'fields': ('updated_at',)}),
     )
@@ -99,16 +100,24 @@ class PaymentSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
         obj = PaymentSettings.load()
         return redirect(reverse('admin:payments_paymentsettings_change', args=[obj.pk]))
 
-    @admin.display(description='URL для кабинета шлюза (callback)')
+    @admin.display(description='Адреса webhook для кабинета TipTop Pay')
     def callback_url(self, obj):
+        from django.utils.html import format_html
         host = next((h for h in settings.ALLOWED_HOSTS if h not in ('*', 'localhost', '127.0.0.1')),
                     'ваш-домен')
-        return f'https://{host}/payments/callback/'
+        base = f'https://{host}/payments/callback/'
+        return format_html(
+            'Pay: <code>{}?type=pay</code><br>'
+            'Fail: <code>{}?type=fail</code><br>'
+            'Refund: <code>{}?type=refund</code><br>'
+            'Check (если используете): <code>{}?type=check</code>',
+            base, base, base, base,
+        )
 
     @admin.display(description='Состояние')
     def status_note(self, obj):
         if gateway.payments_enabled():
             return 'Онлайн-оплата активна.'
-        if obj and obj.is_enabled and not (obj.account and obj.merchant_key and obj.secret):
-            return 'Флаг включён, но не заполнены все реквизиты — оплата не работает.'
+        if obj and obj.is_enabled and not (obj.public_id and obj.api_secret):
+            return 'Флаг включён, но не заполнены оба реквизита — оплата не работает.'
         return 'Онлайн-оплата выключена. Заказы принимаются без предоплаты.'

@@ -145,24 +145,21 @@ ADMIN_SITE_TITLE = 'Black Pepper Admin'
 ADMIN_INDEX_TITLE = 'Панель управления'
 
 
-# Платёжный шлюз TipTop Pay / SmartCore (https://docs.smartcore.pro).
-# Схема: initPayment на сервере -> редирект клиента на форму оплаты шлюза ->
-# подписанный callback о результате -> перевод заказа в «Оплачен».
-# Ключи только через .env, никогда не коммитятся в git.
-SMARTCORE_API_BASE = env('SMARTCORE_API_BASE', default='https://api-gateway.smartcore.pro')
-SMARTCORE_ACCOUNT = env('SMARTCORE_ACCOUNT', default='')       # имя мерчант-аккаунта (для теста с суффиксом -sandbox)
-SMARTCORE_MERCHANT_KEY = env('SMARTCORE_MERCHANT_KEY', default='')  # логин Basic-авторизации
-SMARTCORE_SECRET = env('SMARTCORE_SECRET', default='')         # пароль Basic-авторизации И ключ подписи callback'ов
+# Платёжный шлюз TipTop Pay (ex-CloudPayments KZ, https://developers.tiptoppay.kz).
+# Схема: /orders/create на сервере -> редирект клиента на форму оплаты (Model.Url)
+# -> подписанный webhook о результате -> перевод заказа в «Оплачен».
+# У TipTop Pay всего два реквизита; ключи только через .env, в git не коммитятся.
+# Реквизиты можно задать и в админке («Настройки онлайн-оплаты») — запись там
+# имеет приоритет над .env.
+TIPTOP_API_BASE = env('TIPTOP_API_BASE', default='https://api.tiptoppay.kz')
+TIPTOP_PUBLIC_ID = env('TIPTOP_PUBLIC_ID', default='')       # Public ID, вида «pk_…»
+TIPTOP_API_SECRET = env('TIPTOP_API_SECRET', default='')     # API Secret (пароль API и ключ подписи webhook)
 
 PAYMENT_CURRENCY = env('PAYMENT_CURRENCY', default='KZT')
-# Магазин работает только по Алматы — недостающие для шлюза поля адреса берём отсюда.
-PAYMENT_CUSTOMER_CITY = env('PAYMENT_CUSTOMER_CITY', default='Almaty')
-PAYMENT_CUSTOMER_COUNTRY = env('PAYMENT_CUSTOMER_COUNTRY', default='KZ')
-PAYMENT_CUSTOMER_ZIP = env('PAYMENT_CUSTOMER_ZIP', default='050000')
 
-# Онлайн-оплата включается автоматически, когда заданы все три реквизита.
+# Онлайн-оплата включается автоматически, когда заданы оба реквизита.
 # Пока их нет — чекаут работает по-старому (заказ создаётся, менеджер звонит).
-PAYMENTS_ENABLED = bool(SMARTCORE_ACCOUNT and SMARTCORE_MERCHANT_KEY and SMARTCORE_SECRET)
+PAYMENTS_ENABLED = bool(TIPTOP_PUBLIC_ID and TIPTOP_API_SECRET)
 
 # Яндекс Карты — автоподсказки адреса на чекауте.
 # Геосаджест отдаёт только текстовые подсказки, Геокодер — координаты выбранного

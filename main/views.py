@@ -224,18 +224,15 @@ def checkout(request):
             # пришлёт ссылку на оплату.
             return redirect('main:order_success', order_id=order.pk)
 
-        # Онлайн-оплата: создаём платёж и уводим клиента на форму шлюза.
+        # Онлайн-оплата: создаём счёт и уводим клиента на форму шлюза.
         payment = gateway.create_payment(order)
         try:
             form_url = gateway.init_payment(
                 payment,
-                client_ip=_checkout_client_ip(request),
                 success_url=request.build_absolute_uri(
                     reverse('main:order_success', args=[order.pk])),
                 fail_url=request.build_absolute_uri(
                     reverse('payments:failed', args=[order.pk])),
-                callback_url=request.build_absolute_uri(
-                    reverse('payments:callback')),
             )
         except gateway.PaymentGatewayError:
             order.status = Order.Status.PAYMENT_FAILED
