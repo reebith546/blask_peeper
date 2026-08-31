@@ -18,7 +18,7 @@
 
 /* На тёмных секциях акцент становится светлым (и наоборот), чтобы
    монохромная схема оставалась читаемой в обоих случаях. */
-.site-header, .hero, .reviews, .site-footer, .catalog-header, .section--dark {
+.site-header, .hero, .page-hero, .reviews, .site-footer, .section--dark {
   --accent: #FFFFFF;
   --accent-hover: #CEC7C0;
   --on-accent: #1A1817;
@@ -260,6 +260,30 @@ ul { list-style: none; }
 }
 .hero__buttons { display: flex; gap: 18px; }
 
+/* Единая шапка внутренних страниц: каталог, «О нас», документы. */
+.page-hero {
+  background: var(--bg-dark);
+  color: var(--text-onDark);
+  padding: 56px 0 60px;
+}
+.page-hero .eyebrow { margin-bottom: 12px; }
+.page-hero__title {
+  font-family: var(--display);
+  font-size: 56px;
+  line-height: 0.98;
+  font-weight: 500;
+  color: var(--text-onDark);
+  margin: 0 0 18px;
+}
+.page-hero__title:last-child { margin-bottom: 0; }
+.page-hero__text {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--text-onDark-muted);
+  max-width: 640px;
+  margin: 0;
+}
+
 /* ============ SECTION HEADS ============ */
 .section { padding: 100px 0; }
 .section--dark { background: var(--bg-dark); color: var(--text-onDark); }
@@ -465,13 +489,6 @@ ul { list-style: none; }
 }
 
 /* ============ CATALOG PAGE ============ */
-.catalog-header {
-  background: var(--bg-dark);
-  padding: 56px 0;
-}
-.catalog-header .section-title { color: var(--text-onDark); margin-bottom: 8px; }
-.catalog-header .eyebrow { margin-bottom: 12px; }
-
 .catalog-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1080,6 +1097,7 @@ ul { list-style: none; }
 @media (max-width: 1200px) {
   .container { padding: 0 40px; }
   .hero__title { font-size: 64px; }
+  .page-hero__title { font-size: 46px; }
   .bouquets-grid, .categories-grid { grid-template-columns: repeat(2, 1fr); }
   .advantages-grid { grid-template-columns: repeat(2, 1fr); gap: 32px 24px; }
   .reviews-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1123,6 +1141,8 @@ ul { list-style: none; }
     background: linear-gradient(180deg, rgba(20,17,16,0.55) 0%, rgba(20,17,16,0.82) 100%);
   }
   .hero__title { font-size: 44px; }
+  .page-hero { padding: 40px 0 44px; }
+  .page-hero__title { font-size: 34px; }
   .hero__buttons { flex-direction: column; }
   .hero__buttons .btn { width: 100%; }
   .section { padding: 64px 0; }
