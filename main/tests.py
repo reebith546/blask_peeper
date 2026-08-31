@@ -199,6 +199,133 @@ class CheckoutFlowTests(TestCase):
         self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
 
 
+class DeliveryPriceTamperTests(TestCase):
+    """Пробуем навязать серверу свою стоимость доставки всеми доступными способами.
+
+    Ожидаемое поведение во всех случаях: цена доставки и итоговая сумма —
+    ровно те, что вернул серверный расчёт quote_delivery; данные из запроса
+    клиента на них не влияют.
+    """
+
+    def setUp(self):
+        self.category = Category.objects.create(name='Категория')
+        self.product = Product.objects.create(
+            name='Букет', category=self.category, price=Decimal('18500'),
+            in_stock=True, image=_make_test_image(),
+        )
+        self.zone = DeliveryZone.objects.create(
+            name='Район', radius_from_km=0, radius_to_km=5, price=Decimal('2500'),
+        )
+        # Зона с нулевой/несуществующей ценой — кандидат для подмены.
+        self.on_request_zone = DeliveryZone.objects.create(
+            name='Тест-подмена', radius_from_km=900, radius_to_km=1000,
+            price=None, price_on_request=True,
+        )
+
+    def _fill_cart(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+
+    def _post(self, **extra):
+        data = {
+            'customer_name': 'Малори', 'customer_phone': '+77070000000',
+            'legal_consent': 'yes', 'delivery_address': 'г. Алматы, ул. Абая, 10',
+        }
+        data.update(extra)
+        return self.client.post(reverse('main:checkout'), data)
+
+    def _assert_server_price(self):
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_zone, self.zone)
+        self.assertEqual(order.delivery_price, Decimal('2500'))
+        self.assertEqual(order.total_price, self.product.price + Decimal('2500'))
+        return order
+
+    @patch('main.views.quote_delivery')
+    def test_post_delivery_price_field_is_ignored(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        for payload in ['0', '1', '-9999', '999999', '2500.01', 'abc', '', '2 500']:
+            with self.subTest(payload=payload):
+                Order.objects.all().delete()
+                self._fill_cart()
+                self._post(delivery_price=payload)
+                self._assert_server_price()
+
+    @patch('main.views.quote_delivery')
+    def test_post_delivery_zone_pk_is_ignored(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        for payload in [str(self.on_request_zone.pk), '99999', 'abc', '']:
+            with self.subTest(payload=payload):
+                Order.objects.all().delete()
+                self._fill_cart()
+                self._post(delivery_zone=payload)
+                self._assert_server_price()
+
+    @patch('main.views.quote_delivery')
+    def test_post_total_price_and_confirmed_flags_ignored(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self._fill_cart()
+        self._post(total_price='1', items_total='1', delivery_confirmed='true', delivery_price='1')
+        self._assert_server_price()
+
+    @patch('main.views.quote_delivery')
+    def test_repeated_delivery_price_params_ignored(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self._fill_cart()
+        body = (
+            'customer_name=A&customer_phone=%2B77070000000&legal_consent=yes'
+            '&delivery_address=%D0%90%D0%B1%D0%B0%D1%8F+10'
+            '&delivery_price=1&delivery_price=2&delivery_price=999999'
+        )
+        self.client.post(
+            reverse('main:checkout'), body,
+            content_type='application/x-www-form-urlencoded',
+        )
+        self._assert_server_price()
+
+    @patch('main.views.quote_delivery')
+    def test_json_request_body_cannot_set_price(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self._fill_cart()
+        # JSON-тело не попадает в request.POST: форма не заполнена, согласие
+        # не пройдёт — заказ не создаётся вовсе, цену подсунуть не через что.
+        self.client.post(
+            reverse('main:checkout'),
+            data='{"delivery_price": 1, "total_price": 1, "legal_consent": "yes"}',
+            content_type='application/json',
+        )
+        self.assertEqual(Order.objects.count(), 0)
+
+    def test_checkout_page_exposes_no_price_or_zone_controls(self):
+        self._fill_cart()
+        html = self.client.get(reverse('main:checkout')).content.decode()
+        self.assertNotIn('name="delivery_price"', html)
+        self.assertNotIn('name="delivery_zone"', html)
+        self.assertNotIn('name="total_price"', html)
+        self.assertNotIn('name="delivery_confirmed"', html)
+        # Единственное скрытое поле — CSRF-токен, ни координат, ни зон в hidden нет.
+        self.assertEqual(html.count('type="hidden"'), html.count('csrfmiddlewaretoken'))
+
+    @patch('main.views.quote_delivery')
+    def test_preview_endpoint_price_comes_from_server_not_query(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        resp = self.client.get(
+            reverse('main:address_resolve'),
+            {'address': 'Абая 10', 'price': '1', 'zone': '999', 'confirmed': 'false'},
+        )
+        data = resp.json()
+        self.assertEqual(data['price'], 2500)
+        self.assertEqual(data['zone'], 'Район')
+        self.assertTrue(data['confirmed'])
+
+    @patch('main.views.quote_delivery')
+    def test_cheaper_looking_address_does_not_carry_a_client_price(self, quote):
+        # Даже если клиент шлёт адрес + свою цену — берётся цена зоны из расчёта.
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self._fill_cart()
+        self._post(delivery_address='г. Алматы, ул. Абая, 10', delivery_price='0')
+        self._assert_server_price()
+
+
 class PageSmokeTests(TestCase):
     def test_home_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:home')).status_code, 200)

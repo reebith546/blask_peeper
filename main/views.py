@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
@@ -16,6 +18,16 @@ from payments import gateway
 from reviews.models import Review
 
 from .cart import Cart
+
+logger = logging.getLogger('checkout')
+
+# Поля, которые клиент задать НЕ может: стоимость доставки, зону и итоговую
+# сумму считает исключительно сервер по адресу (quote_delivery). Значения
+# этих полей из запроса не читаются нигде; список нужен только для того,
+# чтобы зафиксировать в логах попытку их подсунуть.
+_CLIENT_PRICING_FIELDS = (
+    'delivery_price', 'delivery_zone', 'delivery_confirmed', 'total_price', 'items_total',
+)
 
 
 def _checkout_client_ip(request):
@@ -157,6 +169,13 @@ def checkout(request):
         # Единственный источник стоимости доставки — расчёт на сервере по адресу.
         # Никаких зон/координат/цен от клиента не принимаем: поля формы,
         # относящиеся к цене доставки, игнорируются полностью.
+        injected = [f for f in _CLIENT_PRICING_FIELDS if f in request.POST]
+        if injected:
+            logger.warning(
+                'checkout: в запросе присутствуют поля ценообразования %s — '
+                'игнорирую, стоимость доставки считает сервер (ip=%s)',
+                ', '.join(injected), _checkout_client_ip(request),
+            )
         delivery_zone, delivery_price, _distance_km, quote_state = quote_delivery(delivery_address)
         delivery_confirmed = quote_state == 'ok'
         if quote_state == 'on_request':
