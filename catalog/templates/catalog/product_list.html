@@ -50,29 +50,15 @@
     </form>
 
     {% if products %}
-      {% if current_category %}
-      <div class="carousel">
-        <div class="carousel__track bouquets-carousel__track">
-          {% for product in products %}
-            {% include "catalog/includes/product_card.html" with lightbox_group="catalog" %}
-          {% endfor %}
-        </div>
-        <button type="button" class="carousel-arrow carousel-arrow--prev" data-carousel-prev aria-label="Предыдущие букеты">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button type="button" class="carousel-arrow carousel-arrow--next" data-carousel-next aria-label="Следующие букеты">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-      {% else %}
       <div class="bouquets-grid">
         {% for product in products %}
           {% include "catalog/includes/product_card.html" %}
         {% endfor %}
       </div>
-      {% endif %}
     {% else %}
-    <p class="empty-note">В этой категории пока нет товаров.</p>
+    <p class="empty-note">
+      {% if current_category %}В этой категории пока нет товаров.{% else %}Товары пока не добавлены.{% endif %}
+    </p>
     {% endif %}
 
   </div>

@@ -237,6 +237,18 @@ class PageSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'персональных данных')
 
+    def test_category_page_uses_vertical_grid_not_carousel(self):
+        category = Category.objects.create(name='Авторские')
+        Product.objects.create(name='Букет', category=category, price=1000,
+                               in_stock=True, image=_make_test_image())
+        response = self.client.get(
+            reverse('catalog:product_list_by_category', args=[category.slug])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="bouquets-grid"')
+        self.assertNotContains(response, 'class="carousel"')
+        self.assertNotContains(response, 'class="carousel__track')
+
     def test_catalog_and_product_detail_load(self):
         category = Category.objects.create(name='Категория')
         product = Product.objects.create(
