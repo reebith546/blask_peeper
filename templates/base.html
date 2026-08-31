@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1817'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='14' fill='%23FFFFFF' text-anchor='middle'%3EBP%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue:wght@100;200;300;400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260831">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
+<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260901">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
 {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -164,19 +164,33 @@
 </script>
 
 <script>
-  // Стрелки карусели — прокрутка трека на ширину видимой области.
+  // Карусель: горизонтальная прокрутка колесом/свайпом + стрелки.
   (function () {
     document.querySelectorAll('.carousel').forEach(function (carousel) {
       var track = carousel.querySelector('.carousel__track');
       var prev = carousel.querySelector('[data-carousel-prev]');
       var next = carousel.querySelector('[data-carousel-next]');
       if (!track) return;
+
+      function step() {
+        var card = track.firstElementChild;
+        var cardW = card ? card.getBoundingClientRect().width + 28 : 288; // + gap
+        var perView = Math.max(1, Math.floor(track.clientWidth / cardW));
+        return cardW * perView;
+      }
+      function updateArrows() {
+        var scrollable = track.scrollWidth - track.clientWidth > 4;
+        if (prev) prev.hidden = !scrollable;
+        if (next) next.hidden = !scrollable;
+      }
       if (prev) prev.addEventListener('click', function () {
-        track.scrollBy({ left: -track.clientWidth * 0.85, behavior: 'smooth' });
+        track.scrollBy({ left: -step(), behavior: 'smooth' });
       });
       if (next) next.addEventListener('click', function () {
-        track.scrollBy({ left: track.clientWidth * 0.85, behavior: 'smooth' });
+        track.scrollBy({ left: step(), behavior: 'smooth' });
       });
+      updateArrows();
+      window.addEventListener('resize', updateArrows);
     });
   })();
 

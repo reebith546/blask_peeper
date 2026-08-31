@@ -47,10 +47,12 @@ def home(request):
             .order_by('order')
             .first()
         ),
+        # Все популярные товары — в карусель «Популярные сборки» (листается скроллом).
         'popular_products': (
             Product.objects
             .filter(is_popular=True, is_active=True, in_stock=True)
-            .select_related('category')[:4]
+            .select_related('category')
+            .order_by('-created_at')
         ),
         'categories': Category.objects.filter(is_active=True, show_on_homepage=True).order_by('order'),
         'instagram_blocks': (

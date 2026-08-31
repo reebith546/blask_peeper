@@ -306,7 +306,9 @@ ul { list-style: none; }
   display: flex;
   gap: 28px;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  /* proximity, а не mandatory — mandatory-снап «съедает» программную прокрутку
+     стрелок и делает её непредсказуемой при большом числе карточек. */
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;

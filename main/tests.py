@@ -203,6 +203,27 @@ class PageSmokeTests(TestCase):
     def test_home_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:home')).status_code, 200)
 
+    def test_home_shows_all_popular_products(self):
+        category = Category.objects.create(name='Категория')
+        made = []
+        for i in range(7):
+            made.append(Product.objects.create(
+                name=f'Популярный {i}', category=category, price=1000,
+                in_stock=True, is_active=True, is_popular=True, image=_make_test_image(),
+            ))
+        # непопулярный / не в наличии — в карусель не попадают
+        Product.objects.create(name='Обычный', category=category, price=1000,
+                               in_stock=True, is_popular=False, image=_make_test_image())
+        Product.objects.create(name='Нет в наличии', category=category, price=1000,
+                               in_stock=False, is_popular=True, image=_make_test_image())
+
+        response = self.client.get(reverse('main:home'))
+        shown = list(response.context['popular_products'])
+        self.assertEqual({p.pk for p in shown}, {p.pk for p in made})
+        for p in made:
+            self.assertContains(response, p.get_absolute_url() if hasattr(p, 'get_absolute_url')
+                                else reverse('catalog:product_detail', args=[p.slug]))
+
     def test_about_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:about')).status_code, 200)
 
