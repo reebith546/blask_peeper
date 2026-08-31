@@ -1,6 +1,19 @@
+import io
+from unittest.mock import patch
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.urls import reverse
+from PIL import Image
 
 from .models import Category, Product
+from .utils import shuffle
+
+
+def _make_test_image():
+    buf = io.BytesIO()
+    Image.new('RGB', (10, 10), '#BE9554').save(buf, format='JPEG')
+    return SimpleUploadedFile('test.jpg', buf.getvalue(), content_type='image/jpeg')
 
 
 class CategoryModelTests(TestCase):
@@ -30,3 +43,85 @@ class ProductModelTests(TestCase):
             name='Бархат Бордо', category=self.category, price=24000, in_stock=False,
         )
         self.assertFalse(product.in_stock)
+
+
+class ShuffleUtilTests(TestCase):
+    def test_returns_new_list_without_mutating_source(self):
+        source = [1, 2, 3, 4, 5]
+        result = shuffle(source)
+        self.assertIsInstance(result, list)
+        self.assertIsNot(result, source)
+        self.assertEqual(source, [1, 2, 3, 4, 5])
+        self.assertCountEqual(result, source)
+
+    def test_accepts_any_iterable(self):
+        result = shuffle(x for x in range(6))
+        self.assertCountEqual(result, list(range(6)))
+
+    def test_eventually_reorders(self):
+        source = list(range(30))
+        self.assertTrue(any(shuffle(source) != source for _ in range(20)))
+
+
+class CatalogOrderingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.authored = Category.objects.create(name='Авторские', slug='avtorskie')
+        cls.mono = Category.objects.create(name='Монобукеты', slug='monobukety')
+        cls.products = []
+        for i in range(8):
+            cls.products.append(Product.objects.create(
+                name=f'Авторский {i}', slug=f'a-{i}', category=cls.authored,
+                price=10000 + i * 1000, in_stock=True, is_active=True,
+                is_popular=(i % 2 == 0), image=_make_test_image(),
+            ))
+        for i in range(6):
+            cls.products.append(Product.objects.create(
+                name=f'Моно {i}', slug=f'm-{i}', category=cls.mono,
+                price=5000 + i * 500, in_stock=True, is_active=True,
+                is_popular=(i < 2), image=_make_test_image(),
+            ))
+
+    def test_all_section_puts_every_popular_before_every_regular(self):
+        resp = self.client.get(reverse('catalog:product_list'))
+        shown = list(resp.context['products'])
+        flags = [p.is_popular for p in shown]
+        # После первого не-популярного не должно встречаться популярных.
+        first_regular = flags.index(False)
+        self.assertNotIn(True, flags[first_regular:])
+        self.assertEqual(sum(flags), Product.objects.filter(is_popular=True).count())
+        self.assertEqual(len(shown), Product.objects.count())
+
+    def test_all_section_shuffles_both_groups(self):
+        calls = []
+
+        def spy(array):
+            items = list(array)
+            calls.append(items)
+            return items
+
+        with patch('catalog.views.shuffle', side_effect=spy):
+            self.client.get(reverse('catalog:product_list'))
+        # Один вызов на популярные, один на остальные.
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(all(p.is_popular for p in calls[0]))
+        self.assertTrue(all(not p.is_popular for p in calls[1]))
+
+    def test_category_page_shuffles_and_shows_only_that_category(self):
+        with patch('catalog.views.shuffle', side_effect=lambda a: list(a)) as mocked:
+            resp = self.client.get(
+                reverse('catalog:product_list_by_category', args=['avtorskie'])
+            )
+        mocked.assert_called_once()
+        shown = list(resp.context['products'])
+        self.assertEqual(
+            {p.pk for p in shown},
+            set(Product.objects.filter(category=self.authored).values_list('pk', flat=True)),
+        )
+
+    def test_explicit_sort_overrides_random_and_popular_float(self):
+        with patch('catalog.views.shuffle') as mocked:
+            resp = self.client.get(reverse('catalog:product_list'), {'sort': 'price_asc'})
+        mocked.assert_not_called()
+        prices = [p.price for p in resp.context['products']]
+        self.assertEqual(prices, sorted(prices))

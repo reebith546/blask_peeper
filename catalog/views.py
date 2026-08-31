@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render
 
 from .models import Category, Product
+from .utils import shuffle
 
 
 SORT_OPTIONS = {
@@ -35,7 +36,17 @@ def product_list(request, category_slug=None):
 
     current_sort = request.GET.get('sort', '')
     if current_sort in SORT_OPTIONS:
-        products = products.order_by(SORT_OPTIONS[current_sort])
+        products = list(products.order_by(SORT_OPTIONS[current_sort]))
+    elif current_category:
+        # Внутри категории — случайный порядок.
+        products = shuffle(products)
+    else:
+        # В разделе «Все» — сначала популярные сборки (в случайном порядке),
+        # затем все остальные товары (тоже в случайном порядке).
+        products = list(products)
+        popular = shuffle(p for p in products if p.is_popular)
+        rest = shuffle(p for p in products if not p.is_popular)
+        products = popular + rest
 
     context = {
         'categories': categories,
