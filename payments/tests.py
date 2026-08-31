@@ -314,14 +314,28 @@ class CheckoutWithPaymentsTests(TestCase):
 
     @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
-    def test_gateway_failure_marks_order_and_shows_failed_page(self, mock_post, quote):
+    def test_gateway_unreachable_falls_back_to_manager_not_500(self, mock_post, quote):
+        # Шлюз недоступен: заказ не теряется и не помечается «ошибка оплаты» —
+        # остаётся обычной заявкой, клиент видит страницу «заказ принят».
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        mock_post.side_effect = gateway.requests.ConnectionError('no route to host')
+        self._fill_cart()
+        resp = self._checkout()
+        order = Order.objects.get()
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertIn('ОНЛАЙН-ОПЛАТА НЕ ЗАПУСТИЛАСЬ', order.comment)
+        self.assertRedirects(resp, reverse('main:order_success', args=[order.pk]))
+
+    @patch('main.views.quote_delivery')
+    @patch('payments.gateway.requests.post')
+    def test_gateway_rejects_order_also_falls_back_to_manager(self, mock_post, quote):
         quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
         mock_post.return_value = _fake_response({'Success': False, 'Message': 'declined'})
         self._fill_cart()
         resp = self._checkout()
         order = Order.objects.get()
-        self.assertEqual(order.status, Order.Status.PAYMENT_FAILED)
-        self.assertRedirects(resp, reverse('payments:failed', args=[order.pk]))
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertRedirects(resp, reverse('main:order_success', args=[order.pk]))
 
     @patch('payments.gateway.requests.post')
     def test_retry_creates_new_payment(self, mock_post):

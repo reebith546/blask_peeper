@@ -31,7 +31,10 @@ from .models import DEFAULT_API_BASE, Payment, PaymentSettings
 
 logger = logging.getLogger('payments')
 
-_TIMEOUT = 30
+# (таймаут соединения, таймаут ответа). Короткий connect-таймаут — чтобы при
+# недоступном шлюзе запрос падал быстро с PaymentGatewayError, а не висел до
+# тех пор, пока воркер gunicorn не убьют по своему таймауту (это давало 500).
+_TIMEOUT = (5, 25)
 
 Config = namedtuple('Config', 'public_id api_secret api_base currency enabled')
 

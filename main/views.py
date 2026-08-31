@@ -235,10 +235,21 @@ def checkout(request):
                     reverse('payments:failed', args=[order.pk])),
             )
         except gateway.PaymentGatewayError:
-            order.status = Order.Status.PAYMENT_FAILED
-            order.save(update_fields=['status', 'updated_at'])
-            messages.error(request, 'Не удалось начать оплату. Попробуйте ещё раз.')
-            return redirect('payments:failed', order_id=order.pk)
+            # Шлюз недоступен / отказал в создании счёта. Заказ не теряем и
+            # клиента не пугаем «ошибкой оплаты»: оставляем как обычную заявку,
+            # менеджер согласует оплату вручную.
+            logger.exception('checkout: не удалось создать счёт для заказа %s', order.pk)
+            order.status = Order.Status.NEW
+            order.comment = (
+                'ОНЛАЙН-ОПЛАТА НЕ ЗАПУСТИЛАСЬ (шлюз недоступен) — связаться с '
+                'клиентом, принять оплату вручную / прислать ссылку.\n' + order.comment
+            ).strip()
+            order.save(update_fields=['status', 'comment', 'updated_at'])
+            messages.info(
+                request,
+                'Заказ принят. Оплату согласует менеджер — мы свяжемся с вами.',
+            )
+            return redirect('main:order_success', order_id=order.pk)
 
         return redirect(form_url)
 
