@@ -155,12 +155,6 @@ def checkout(request):
             )
             return render(request, 'main/checkout.html', context)
 
-        # При онлайн-оплате email обязателен — его требует платёжный шлюз.
-        customer_email = request.POST.get('customer_email', '').strip()
-        if gateway.payments_enabled() and not customer_email:
-            messages.error(request, 'Укажите email — на него придёт чек об оплате.')
-            return render(request, 'main/checkout.html', context)
-
         items_total = cart.get_total_price()
         details = cart.get_details()
         comment = request.POST.get('comment', '').strip()
@@ -199,7 +193,6 @@ def checkout(request):
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
             customer_phone=request.POST.get('customer_phone', '').strip(),
-            customer_email=customer_email,
             delivery_zone=delivery_zone,
             delivery_address=delivery_address,
             delivery_date=details.get('delivery_date') or None,

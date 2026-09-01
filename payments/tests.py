@@ -95,7 +95,7 @@ class ApplyCallbackTests(TestCase):
         self.order = Order.objects.create(
             status=Order.Status.PENDING_PAYMENT,
             customer_name='Аня', customer_phone='+77000000000',
-            customer_email='a@e.com', delivery_address='ул. Тест, 1',
+            delivery_address='ул. Тест, 1',
             total_price=Decimal('12000'),
         )
         self.payment = Payment.objects.create(
@@ -169,7 +169,7 @@ class CallbackViewTests(TestCase):
     def setUp(self):
         self.order = Order.objects.create(
             status=Order.Status.PENDING_PAYMENT, customer_name='Аня',
-            customer_phone='+77000000000', customer_email='a@e.com',
+            customer_phone='+77000000000',
             delivery_address='ул. Тест, 1', total_price=Decimal('9000'),
         )
         self.payment = Payment.objects.create(
@@ -249,8 +249,7 @@ class CheckoutWithPaymentsTests(TestCase):
     def _checkout(self, **over):
         data = {
             'customer_name': 'Иван Петров', 'customer_phone': '+77070000000',
-            'customer_email': 'ivan@example.com', 'delivery_address': 'ул. Абая, 10',
-            'legal_consent': 'yes',
+            'delivery_address': 'ул. Абая, 10', 'legal_consent': 'yes',
         }
         data.update(over)
         return self.client.post(reverse('main:checkout'), data)
@@ -286,19 +285,12 @@ class CheckoutWithPaymentsTests(TestCase):
         mock_post.return_value = _orders_create_ok()
         order = Order.objects.create(
             status=Order.Status.PAYMENT_FAILED, customer_name='Иван',
-            customer_phone='+77070000000', customer_email='i@e.com',
+            customer_phone='+77070000000',
             delivery_address='ул. Абая, 10', total_price=Decimal('20000'),
         )
         self.client.post(reverse('payments:retry', args=[order.pk]))
         expected = 'Basic ' + base64.b64encode(b'pk_test:s3cret').decode()
         self.assertEqual(mock_post.call_args.kwargs['headers']['Authorization'], expected)
-
-    def test_email_is_required_when_payments_enabled(self):
-        self._fill_cart()
-        resp = self._checkout(customer_email='')
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Укажите email')
-        self.assertEqual(Order.objects.count(), 0)
 
     @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
@@ -343,7 +335,7 @@ class CheckoutWithPaymentsTests(TestCase):
             url='https://pay.example.test/retry', ext_id='GW-2')
         order = Order.objects.create(
             status=Order.Status.PAYMENT_FAILED, customer_name='Иван Петров',
-            customer_phone='+77070000000', customer_email='ivan@example.com',
+            customer_phone='+77070000000',
             delivery_address='ул. Абая, 10', total_price=Decimal('20000'),
         )
         resp = self.client.post(reverse('payments:retry', args=[order.pk]))
@@ -497,8 +489,7 @@ class CheckoutUsesDbConfigTests(TestCase):
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
         resp = self.client.post(reverse('main:checkout'), {
             'customer_name': 'Иван Петров', 'customer_phone': '+77070000000',
-            'customer_email': 'i@e.com', 'delivery_address': 'ул. Абая, 10',
-            'legal_consent': 'yes',
+            'delivery_address': 'ул. Абая, 10', 'legal_consent': 'yes',
         })
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp['Location'], 'https://db-gateway.test/form/1')

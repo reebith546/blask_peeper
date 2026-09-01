@@ -129,10 +129,6 @@
               <input type="tel" id="customer-phone" name="customer_phone" required>
             </div>
           </div>
-          <div class="form-field">
-            <label for="customer-email">Email{% if payments_enabled %} (для чека об оплате){% else %} (необязательно){% endif %}</label>
-            <input type="email" id="customer-email" name="customer_email"{% if payments_enabled %} required{% endif %}>
-          </div>
         </div>
 
         <div class="checkout-section">

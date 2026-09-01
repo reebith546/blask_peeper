@@ -22,7 +22,6 @@ class Order(models.Model):
     # Данные клиента
     customer_name = models.CharField('Имя клиента', max_length=150)
     customer_phone = models.CharField('Телефон клиента', max_length=32)
-    customer_email = models.EmailField('Email клиента', blank=True)
 
     # Доставка. Координаты адреса намеренно не хранятся — бесплатный тариф
     # Яндекс Карт запрещает сохранять данные геокодирования, координаты

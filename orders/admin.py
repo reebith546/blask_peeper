@@ -43,7 +43,7 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
     )
     list_editable = ('status',)
     list_filter = ('status', 'delivery_zone', 'created_at')
-    search_fields = ('id', 'customer_name', 'customer_phone', 'customer_email', 'delivery_address')
+    search_fields = ('id', 'customer_name', 'customer_phone', 'delivery_address')
     readonly_fields = ('created_at', 'updated_at', 'total_price')
     inlines = [OrderItemInline, PaymentInline]
     date_hierarchy = 'created_at'
@@ -51,7 +51,7 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
 
     fieldsets = (
         ('Статус', {'fields': ('status',)}),
-        ('Клиент', {'fields': ('customer_name', 'customer_phone', 'customer_email')}),
+        ('Клиент', {'fields': ('customer_name', 'customer_phone')}),
         ('Доставка', {'fields': (
             'delivery_zone', 'delivery_address', 'delivery_price',
             'delivery_date', 'delivery_time',
