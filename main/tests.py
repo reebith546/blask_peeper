@@ -390,6 +390,12 @@ class PageSmokeTests(TestCase):
         self.assertIn('class="page-hero"', html)
         self.assertNotIn('page-hero--image', html)
 
+    def test_font_is_selfhosted_bebas_not_google_fonts(self):
+        html = self.client.get(reverse('main:home')).content.decode()
+        self.assertNotIn('fonts.googleapis.com', html)
+        self.assertNotIn('fonts.gstatic.com', html)
+        self.assertIn('fonts/BebasNeue.woff2', html)
+
     def test_category_page_uses_vertical_grid_not_carousel(self):
         category = Category.objects.create(name='Авторские')
         Product.objects.create(name='Букет', category=category, price=1000,

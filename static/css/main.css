@@ -1,3 +1,14 @@
+/* Bebas Neue с поддержкой кириллицы — self-hosted.
+   Источник: github.com/Scrum/font-bebas-neue (MIT). Файлы: static/fonts/. */
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('../fonts/BebasNeue.woff2') format('woff2'),
+       url('../fonts/BebasNeue.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg-dark: #1A1817;
   --bg-darker: #131110;
@@ -12,8 +23,9 @@
   --text-onLight: #1A1817;
   --text-onLight-muted: #6B6560;
   --border-soft: rgba(255,255,255,0.12);
+  /* Единый шрифт на всём сайте — Bebas Neue (и заголовки, и текст). */
   --display: 'Bebas Neue', 'Arial Narrow', sans-serif;
-  --sans: 'Inter', sans-serif;
+  --sans: 'Bebas Neue', 'Arial Narrow', sans-serif;
 }
 
 /* На тёмных секциях акцент становится светлым (и наоборот), чтобы
