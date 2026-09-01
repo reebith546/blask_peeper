@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<section class="page-hero">
+<section class="page-hero{% if site_hero_image %} page-hero--image{% endif %}"{% if site_hero_image %} style="background-image: url('{{ site_hero_image }}')"{% endif %}>
   <div class="container">
     <span class="eyebrow">Документы</span>
     <h1 class="page-hero__title">Публичная<br>оферта.</h1>

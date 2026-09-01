@@ -284,6 +284,28 @@ ul { list-style: none; }
   margin: 0;
 }
 
+/* То же фоновое фото, что и в hero на главной — шапка единая на всём сайте. */
+.page-hero--image {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding-top: 72px;
+  padding-bottom: 76px;
+}
+.page-hero--image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(20, 17, 16, 0.92) 0%,
+    rgba(20, 17, 16, 0.72) 55%,
+    rgba(20, 17, 16, 0.42) 100%
+  );
+}
+.page-hero--image > .container { position: relative; z-index: 1; }
+
 /* ============ SECTION HEADS ============ */
 .section { padding: 100px 0; }
 .section--dark { background: var(--bg-dark); color: var(--text-onDark); }
@@ -1142,6 +1164,10 @@ ul { list-style: none; }
   }
   .hero__title { font-size: 44px; }
   .page-hero { padding: 40px 0 44px; }
+  .page-hero--image { padding: 44px 0 48px; }
+  .page-hero--image::before {
+    background: linear-gradient(180deg, rgba(20,17,16,0.62) 0%, rgba(20,17,16,0.85) 100%);
+  }
   .page-hero__title { font-size: 34px; }
   .hero__buttons { flex-direction: column; }
   .hero__buttons .btn { width: 100%; }

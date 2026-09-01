@@ -364,6 +364,32 @@ class PageSmokeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'персональных данных')
 
+    def test_internal_page_headers_share_the_hero_banner_image(self):
+        from content.models import HomepageBlock
+
+        block = HomepageBlock.objects.create(
+            block_type=HomepageBlock.BlockType.HERO, is_active=True,
+            image=_make_test_image(), order=0,
+        )
+        Category.objects.create(name='Авторские', slug='avtorskie')
+
+        for name, args in [
+            ('catalog:product_list', []),
+            ('catalog:product_list_by_category', ['avtorskie']),
+            ('main:about', []),
+            ('main:offer', []),
+            ('main:privacy_policy', []),
+        ]:
+            with self.subTest(page=name):
+                html = self.client.get(reverse(name, args=args)).content.decode()
+                self.assertIn('page-hero--image', html)
+                self.assertIn(block.image.url, html)
+
+    def test_internal_page_headers_stay_plain_without_a_hero_block(self):
+        html = self.client.get(reverse('main:about')).content.decode()
+        self.assertIn('class="page-hero"', html)
+        self.assertNotIn('page-hero--image', html)
+
     def test_category_page_uses_vertical_grid_not_carousel(self):
         category = Category.objects.create(name='Авторские')
         Product.objects.create(name='Букет', category=category, price=1000,

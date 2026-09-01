@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<section class="page-hero">
+<section class="page-hero{% if site_hero_image %} page-hero--image{% endif %}"{% if site_hero_image %} style="background-image: url('{{ site_hero_image }}')"{% endif %}>
   <div class="container">
     <span class="eyebrow">Каталог</span>
     <h1 class="page-hero__title">{% if current_category %}{{ current_category.name }}{% else %}Все букеты{% endif %}</h1>
