@@ -119,19 +119,6 @@ def cart_remove(request, product_id):
     return redirect('main:cart')
 
 
-@require_POST
-def cart_details(request):
-    cart = Cart(request)
-    if len(cart) == 0:
-        return redirect('main:cart')
-    cart.set_details(
-        delivery_date=request.POST.get('delivery_date', ''),
-        delivery_time=request.POST.get('delivery_time', ''),
-        card_text=request.POST.get('card_text', ''),
-    )
-    return redirect('main:checkout')
-
-
 def checkout(request):
     cart = Cart(request)
     if len(cart) == 0:
@@ -139,7 +126,6 @@ def checkout(request):
 
     context = {
         'cart': cart,
-        'details': cart.get_details(),
         'yandex_enabled': bool(settings.YANDEX_SUGGEST_API_KEY and settings.YANDEX_GEOCODER_API_KEY),
         'payments_enabled': gateway.payments_enabled(),
     }
@@ -156,7 +142,6 @@ def checkout(request):
             return render(request, 'main/checkout.html', context)
 
         items_total = cart.get_total_price()
-        details = cart.get_details()
         comment = request.POST.get('comment', '').strip()
         delivery_address = request.POST.get('delivery_address', '').strip()
 
@@ -193,12 +178,14 @@ def checkout(request):
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
             customer_phone=request.POST.get('customer_phone', '').strip(),
+            recipient_name=request.POST.get('recipient_name', '').strip(),
+            recipient_phone=request.POST.get('recipient_phone', '').strip(),
             delivery_zone=delivery_zone,
             delivery_address=delivery_address,
-            delivery_date=details.get('delivery_date') or None,
-            delivery_time=details.get('delivery_time', ''),
+            delivery_date=request.POST.get('delivery_date') or None,
+            delivery_time=request.POST.get('delivery_time', '').strip(),
             delivery_price=delivery_price,
-            card_text=details.get('card_text', ''),
+            card_text=request.POST.get('card_text', '').strip(),
             comment=comment,
             total_price=items_total + delivery_price,
         )

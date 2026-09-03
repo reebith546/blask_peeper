@@ -38,12 +38,16 @@ class PaymentInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
     list_display = (
-        'id', 'customer_name', 'customer_phone', 'address_short', 'status', 'payment_state',
+        'id', 'recipient_name', 'recipient_phone', 'customer_name', 'customer_phone',
+        'address_short', 'status', 'payment_state',
         'total_price_display', 'delivery_date', 'created_at',
     )
     list_editable = ('status',)
     list_filter = ('status', 'delivery_zone', 'created_at')
-    search_fields = ('id', 'customer_name', 'customer_phone', 'delivery_address')
+    search_fields = (
+        'id', 'customer_name', 'customer_phone',
+        'recipient_name', 'recipient_phone', 'delivery_address',
+    )
     readonly_fields = ('created_at', 'updated_at', 'total_price')
     inlines = [OrderItemInline, PaymentInline]
     date_hierarchy = 'created_at'
@@ -51,7 +55,8 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
 
     fieldsets = (
         ('Статус', {'fields': ('status',)}),
-        ('Клиент', {'fields': ('customer_name', 'customer_phone')}),
+        ('Получатель', {'fields': ('recipient_name', 'recipient_phone')}),
+        ('Отправитель (заказчик)', {'fields': ('customer_name', 'customer_phone')}),
         ('Доставка', {'fields': (
             'delivery_zone', 'delivery_address', 'delivery_price',
             'delivery_date', 'delivery_time',

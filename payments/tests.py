@@ -249,6 +249,7 @@ class CheckoutWithPaymentsTests(TestCase):
     def _checkout(self, **over):
         data = {
             'customer_name': 'Иван Петров', 'customer_phone': '+77070000000',
+            'recipient_name': 'Пётр', 'recipient_phone': '+77072222222',
             'delivery_address': 'ул. Абая, 10', 'legal_consent': 'yes',
         }
         data.update(over)

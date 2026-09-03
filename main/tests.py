@@ -110,6 +110,7 @@ class CheckoutFlowTests(TestCase):
     def _checkout(self, **extra):
         data = {
             'customer_name': 'Анна', 'customer_phone': '+77070000000',
+            'recipient_name': 'Борис', 'recipient_phone': '+77071111111',
             'legal_consent': 'yes', 'delivery_address': 'г. Алматы, ул. Абая, 10',
         }
         data.update(extra)
@@ -119,10 +120,10 @@ class CheckoutFlowTests(TestCase):
     def test_full_checkout_uses_server_computed_delivery_price(self, quote):
         quote.return_value = (self.zone, self.zone.price, 1.2, 'ok')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
-        self.client.post(reverse('main:cart_details'), {
-            'delivery_date': '2026-08-20', 'delivery_time': '14:00-16:00', 'card_text': 'Поздравляю!',
-        })
-        response = self._checkout()
+        # Всё в один шаг: дата/время/открытка отправляются вместе с чекаутом.
+        response = self._checkout(
+            delivery_date='2026-08-20', delivery_time='14:00-16:00', card_text='Поздравляю!',
+        )
 
         order = Order.objects.get()
         self.assertEqual(order.items.count(), 1)
@@ -130,8 +131,39 @@ class CheckoutFlowTests(TestCase):
         self.assertEqual(order.delivery_price, self.zone.price)
         self.assertEqual(order.total_price, self.product.price + self.zone.price)
         self.assertEqual(order.card_text, 'Поздравляю!')
+        self.assertEqual(str(order.delivery_date), '2026-08-20')
+        self.assertEqual(order.delivery_time, '14:00-16:00')
         self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
         self.assertContains(self.client.get(reverse('main:cart')), 'Корзина пока пуста')
+
+    @patch('main.views.quote_delivery')
+    def test_checkout_stores_recipient_and_sender_separately(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout(
+            customer_name='Анна Заказчик', customer_phone='+77070000001',
+            recipient_name='Борис Получатель', recipient_phone='+77070000002',
+        )
+        order = Order.objects.get()
+        self.assertEqual(order.customer_name, 'Анна Заказчик')
+        self.assertEqual(order.customer_phone, '+77070000001')
+        self.assertEqual(order.recipient_name, 'Борис Получатель')
+        self.assertEqual(order.recipient_phone, '+77070000002')
+
+    def test_cart_page_links_straight_to_checkout_single_step(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        html = self.client.get(reverse('main:cart')).content.decode()
+        self.assertIn(reverse('main:checkout'), html)
+        self.assertNotIn('name="delivery_date"', html)   # дата теперь на чекауте
+        self.assertNotIn('cart/details', html)
+
+    def test_checkout_page_has_recipient_and_sender_and_delivery_fields(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        html = self.client.get(reverse('main:checkout')).content.decode()
+        for name in ('recipient_name', 'recipient_phone', 'customer_name',
+                     'customer_phone', 'delivery_address', 'delivery_date',
+                     'delivery_time', 'card_text'):
+            self.assertIn(f'name="{name}"', html)
 
     @patch('main.views.quote_delivery')
     def test_client_cannot_override_zone_or_price_via_form(self, quote):

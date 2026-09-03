@@ -34,27 +34,6 @@
           </div>
         </div>
         {% endfor %}
-
-        <form class="cart-collapsible" action="{% url 'main:cart_details' %}" method="post" id="cart-details-form">
-          {% csrf_token %}
-          <details open>
-            <summary>Дата и время доставки, открытка</summary>
-            <div class="cart-collapsible__body">
-              <div class="form-field">
-                <label for="delivery-date">Дата доставки</label>
-                <input type="date" id="delivery-date" name="delivery_date" value="{{ cart.get_details.delivery_date }}">
-              </div>
-              <div class="form-field">
-                <label for="delivery-time">Время доставки</label>
-                <input type="text" id="delivery-time" name="delivery_time" placeholder="Например, 14:00–16:00" value="{{ cart.get_details.delivery_time }}">
-              </div>
-              <div class="form-field">
-                <label for="card-text">Текст открытки (необязательно)</label>
-                <textarea id="card-text" name="card_text" placeholder="Что написать на открытке?">{{ cart.get_details.card_text }}</textarea>
-              </div>
-            </div>
-          </details>
-        </form>
       </div>
 
       <aside class="cart-summary">
@@ -65,13 +44,13 @@
         </div>
         <div class="cart-summary__row">
           <span>Доставка</span>
-          <span>рассчитается на следующем шаге</span>
+          <span>рассчитается при оформлении</span>
         </div>
         <div class="cart-summary__row cart-summary__row--total">
           <span>Итого</span>
           <span>{{ cart.get_total_price|kzt }}</span>
         </div>
-        <button type="submit" form="cart-details-form" class="btn btn--primary">Оформить заказ</button>
+        <a href="{% url 'main:checkout' %}" class="btn btn--primary">Оформить заказ</a>
       </aside>
     </div>
     {% else %}

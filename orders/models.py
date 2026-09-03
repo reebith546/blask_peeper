@@ -19,9 +19,13 @@ class Order(models.Model):
         'Статус', max_length=20, choices=Status.choices, default=Status.NEW,
     )
 
-    # Данные клиента
-    customer_name = models.CharField('Имя клиента', max_length=150)
-    customer_phone = models.CharField('Телефон клиента', max_length=32)
+    # Отправитель (заказчик) — тот, кто оформляет заказ, ему звонит менеджер.
+    customer_name = models.CharField('Имя отправителя', max_length=150)
+    customer_phone = models.CharField('Телефон отправителя', max_length=32)
+
+    # Получатель — кому вручают букет (может совпадать с отправителем).
+    recipient_name = models.CharField('Имя получателя', max_length=150, blank=True)
+    recipient_phone = models.CharField('Телефон получателя', max_length=32, blank=True)
 
     # Доставка. Координаты адреса намеренно не хранятся — бесплатный тариф
     # Яндекс Карт запрещает сохранять данные геокодирования, координаты

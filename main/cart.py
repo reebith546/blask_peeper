@@ -3,7 +3,6 @@ from decimal import Decimal
 from catalog.models import Product
 
 CART_SESSION_KEY = 'cart'
-DETAILS_SESSION_KEY = 'cart_details'
 MAX_QUANTITY_PER_ITEM = 20
 
 
@@ -42,18 +41,6 @@ class Cart:
 
     def clear(self):
         self.session[CART_SESSION_KEY] = {}
-        self.session[DETAILS_SESSION_KEY] = {}
-        self._save()
-
-    def get_details(self):
-        return self.session.get(DETAILS_SESSION_KEY, {})
-
-    def set_details(self, delivery_date='', delivery_time='', card_text=''):
-        self.session[DETAILS_SESSION_KEY] = {
-            'delivery_date': delivery_date,
-            'delivery_time': delivery_time,
-            'card_text': card_text,
-        }
         self._save()
 
     def _save(self):
