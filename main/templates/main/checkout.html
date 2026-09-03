@@ -43,6 +43,24 @@
     window.BPF_CHECKOUT.reset();
   });
 
+  // Телефон: жёстко «+7», далее максимум 10 цифр номера.
+  (function () {
+    function normalize(value) {
+      var d = String(value).replace(/^\+7/, '').replace(/\D/g, '');
+      if (d.length === 11 && (d[0] === '7' || d[0] === '8')) d = d.slice(1);
+      return '+7' + d.slice(0, 10);
+    }
+    function bind(el) {
+      if (!el) return;
+      el.addEventListener('focus', function () { if (!el.value) el.value = '+7'; });
+      el.addEventListener('input', function () { el.value = normalize(el.value); });
+      el.addEventListener('blur', function () { if (el.value === '+7') el.value = ''; });
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.js-phone').forEach(bind);
+    });
+  })();
+
   {% if yandex_enabled %}
   document.addEventListener('DOMContentLoaded', function () {
     var addressInput = document.getElementById('delivery-address');
@@ -126,7 +144,10 @@
             </div>
             <div class="form-field">
               <label for="recipient-phone">Телефон получателя</label>
-              <input type="tel" id="recipient-phone" name="recipient_phone" placeholder="+7 ___ ___ __ __" required>
+              <input type="tel" id="recipient-phone" name="recipient_phone"
+                     class="js-phone" inputmode="numeric" maxlength="12"
+                     pattern="\+7[0-9]{10}" title="+7 и 10 цифр номера"
+                     placeholder="+7 __________" required>
             </div>
           </div>
         </div>
@@ -140,7 +161,10 @@
             </div>
             <div class="form-field">
               <label for="customer-phone">Ваш телефон</label>
-              <input type="tel" id="customer-phone" name="customer_phone" placeholder="+7 ___ ___ __ __" required>
+              <input type="tel" id="customer-phone" name="customer_phone"
+                     class="js-phone" inputmode="numeric" maxlength="12"
+                     pattern="\+7[0-9]{10}" title="+7 и 10 цифр номера"
+                     placeholder="+7 __________" required>
             </div>
           </div>
           <p class="empty-note">На этот номер менеджер позвонит для подтверждения заказа.</p>

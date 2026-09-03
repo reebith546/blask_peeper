@@ -1,4 +1,5 @@
 import logging
+import re
 
 from django.conf import settings
 from django.contrib import messages
@@ -28,6 +29,21 @@ logger = logging.getLogger('checkout')
 _CLIENT_PRICING_FIELDS = (
     'delivery_price', 'delivery_zone', 'delivery_confirmed', 'total_price', 'items_total',
 )
+
+
+def _normalize_phone(raw):
+    """Приводит телефон к виду +7XXXXXXXXXX (ровно 10 цифр после +7).
+
+    Отбрасывает всё, кроме цифр; ведущую 7/8 (код страны) снимает; лишние
+    цифры за пределами 10 обрезает. Пусто — если цифр не осталось.
+    """
+    # сначала снимаем литеральный префикс «+7», затем разбираем остаток
+    body = re.sub(r'^\+7', '', (raw or '').strip())
+    digits = re.sub(r'\D', '', body)
+    if len(digits) == 11 and digits[0] in ('7', '8'):
+        digits = digits[1:]
+    digits = digits[:10]
+    return f'+7{digits}' if digits else ''
 
 
 def _checkout_client_ip(request):
@@ -177,9 +193,9 @@ def checkout(request):
                 else Order.Status.NEW
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
-            customer_phone=request.POST.get('customer_phone', '').strip(),
+            customer_phone=_normalize_phone(request.POST.get('customer_phone')),
             recipient_name=request.POST.get('recipient_name', '').strip(),
-            recipient_phone=request.POST.get('recipient_phone', '').strip(),
+            recipient_phone=_normalize_phone(request.POST.get('recipient_phone')),
             delivery_zone=delivery_zone,
             delivery_address=delivery_address,
             delivery_date=request.POST.get('delivery_date') or None,

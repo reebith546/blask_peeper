@@ -164,6 +164,21 @@ class CheckoutFlowTests(TestCase):
                      'customer_phone', 'delivery_address', 'delivery_date',
                      'delivery_time', 'card_text'):
             self.assertIn(f'name="{name}"', html)
+        # телефоны ограничены: +7 и 10 цифр
+        self.assertEqual(html.count('pattern="\\+7[0-9]{10}"'), 2)
+        self.assertEqual(html.count('maxlength="12"'), 2)
+
+    @patch('main.views.quote_delivery')
+    def test_phone_is_normalized_to_plus7_and_ten_digits(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout(
+            customer_phone='8 (707) 412-72-54',
+            recipient_phone='+7 707 412 7254 21 21 21',   # лишние цифры отбрасываются
+        )
+        order = Order.objects.get()
+        self.assertEqual(order.customer_phone, '+77074127254')
+        self.assertEqual(order.recipient_phone, '+77074127254')
 
     @patch('main.views.quote_delivery')
     def test_client_cannot_override_zone_or_price_via_form(self, quote):
