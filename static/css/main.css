@@ -1237,9 +1237,8 @@ ul { list-style: none; }
   .hero__buttons .btn { width: 100%; }
   .section { padding: 44px 0; }
   .advantages { padding: 44px 0; }
-  /* убираем двойной вертикальный отступ между соседними секциями */
-  .hero + .section,
-  .page-hero + .section,
+  /* убираем двойной вертикальный отступ между соседними контентными
+     секциями (но НЕ после hero/page-hero — там отступ нужен). */
   .section + .section,
   .section + .advantages,
   .advantages + .section,
