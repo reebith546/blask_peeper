@@ -30,7 +30,7 @@
 
 /* На тёмных секциях акцент становится светлым (и наоборот), чтобы
    монохромная схема оставалась читаемой в обоих случаях. */
-.site-header, .hero, .page-hero, .reviews, .site-footer, .section--dark {
+.site-header, .hero, .page-hero, .reviews, .site-footer, .section--dark, .bottom-nav {
   --accent: #FFFFFF;
   --accent-hover: #CEC7C0;
   --on-accent: #1A1817;
@@ -208,6 +208,9 @@ ul { list-style: none; }
   cursor: pointer;
 }
 .nav-toggle svg { width: 24px; height: 24px; }
+
+/* Нижняя навигация — показывается только на мобильном (см. @media 720px). */
+.bottom-nav { display: none; }
 
 .messages { padding: 16px 0 0; }
 .messages__item {
@@ -1139,22 +1142,68 @@ ul { list-style: none; }
   .instagram-grid { grid-template-columns: repeat(3, 1fr); }
   .header-topbar__note { display: none; }
   .header-topbar__inner { justify-content: flex-end; }
-  .nav {
-    display: none;
-    position: absolute;
-    top: 100%;
+  /* Верхнее меню и бургер убраны — навигация уезжает в нижнюю панель.
+     Корзина тоже переезжает вниз, чтобы в шапке остались только логотип
+     и телефон (иконка-бейдж корзины к тому же вылезала за край экрана). */
+  .nav, .nav-toggle, .header-icons__badge { display: none !important; }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
     left: 0;
     right: 0;
-    flex-direction: column;
-    gap: 0;
+    bottom: 0;
+    z-index: 200;
     background: var(--bg-dark);
     border-top: 1px solid var(--border-soft);
-    padding: 8px 0 24px;
-    z-index: 30;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
   }
-  .nav.is-open { display: flex; }
-  .nav a { padding: 14px 40px; }
-  .nav-toggle { display: flex; align-items: center; justify-content: center; }
+  .bottom-nav__item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-onDark-muted);
+    font-family: var(--sans);
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .bottom-nav__item span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bottom-nav__item.is-active { color: var(--accent); }
+  .bottom-nav__item svg { width: 22px; height: 22px; display: block; }
+  .bottom-nav__icon { position: relative; display: block; line-height: 0; }
+  .bottom-nav__count {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* контент не должен уходить под фиксированную панель */
+  body { padding-bottom: 68px; }
+
   .product-detail__grid,
   .cart__grid,
   .checkout__grid { grid-template-columns: 1fr; }

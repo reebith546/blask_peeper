@@ -7,7 +7,7 @@
 <title>{% block title %}Black Pepper Flower Bar — Цветы с характером{% endblock %}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231A1817'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='14' fill='%23FFFFFF' text-anchor='middle'%3EBP%3C/text%3E%3C/svg%3E">
 <link rel="preload" href="{% static 'fonts/BebasNeue.woff2' %}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260906">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
+<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260907">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
 {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -48,12 +48,37 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8"/><path d="M5 8h14l-1 11H6L5 8Z" stroke="currentColor" stroke-width="1.8"/></svg>
         {% if cart|length > 0 %}<span class="header-icons__count">{{ cart|length }}</span>{% endif %}
       </a>
-      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Меню" aria-expanded="false" aria-controls="site-nav">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
     </div>
   </div>
 </header>
+
+{% with url_name=request.resolver_match.url_name %}
+<nav class="bottom-nav" aria-label="Навигация">
+  <a href="{% url 'catalog:product_list' %}" class="bottom-nav__item{% if url_name == 'product_list' or url_name == 'product_list_by_category' %} is-active{% endif %}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
+    <span>Каталог</span>
+  </a>
+  <a href="{% url 'main:cart' %}" class="bottom-nav__item{% if url_name == 'cart' %} is-active{% endif %}">
+    <span class="bottom-nav__icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8"/><path d="M5 8h14l-1 11H6L5 8Z" stroke="currentColor" stroke-width="1.8"/></svg>
+      {% if cart|length > 0 %}<span class="bottom-nav__count">{{ cart|length }}</span>{% endif %}
+    </span>
+    <span>Корзина</span>
+  </a>
+  <a href="tel:+77066644144" class="bottom-nav__item">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11 11 0 0 0 3.5.56 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.2.2 2.4.56 3.5a1 1 0 0 1-.25 1L6.6 10.8Z" fill="currentColor"/></svg>
+    <span>Связаться</span>
+  </a>
+  <a href="{% url 'main:about' %}" class="bottom-nav__item{% if url_name == 'about' %} is-active{% endif %}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.4" r="1.2" fill="currentColor"/></svg>
+    <span>О нас</span>
+  </a>
+  <button type="button" class="bottom-nav__item" id="scroll-top" aria-label="Наверх">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 19V6M6 12l6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Наверх</span>
+  </button>
+</nav>
+{% endwith %}
 
 <main>
   {% if messages %}
@@ -129,13 +154,12 @@
 </div>
 
 <script>
+  // Нижняя навигация (мобилка): кнопка «Наверх».
   (function () {
-    var toggle = document.getElementById('nav-toggle');
-    var nav = document.getElementById('site-nav');
-    if (!toggle || !nav) return;
-    toggle.addEventListener('click', function () {
-      var isOpen = nav.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    var btn = document.getElementById('scroll-top');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   })();
 
