@@ -1186,7 +1186,32 @@ ul { list-style: none; }
   .section { padding: 64px 0; }
   .section-title { font-size: 38px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .bouquets-grid, .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
+  .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
+
+  /* Каталог на мобильном — сетка карточек в 2 колонки (компактные карточки). */
+  .bouquets-grid { grid-template-columns: repeat(2, 1fr); gap: 16px 10px; }
+  .bouquets-grid .bouquet-card {
+    border: 1px solid rgba(26,24,23,0.10);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .bouquets-grid .bouquet-card__image-wrap { aspect-ratio: 1 / 1; }
+  .bouquets-grid .bouquet-card__body { padding: 12px 12px 14px; }
+  .bouquets-grid .bouquet-card__title { font-size: 21px; margin-bottom: 6px; }
+  .bouquets-grid .bouquet-card__composition { display: none; }
+  .bouquets-grid .bouquet-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-top: 10px;
+  }
+  .bouquets-grid .bouquet-card__price { font-size: 21px; }
+  .bouquets-grid .bouquet-card__cart-btn {
+    width: 100%;
+    padding: 11px 12px;
+    text-align: center;
+  }
+  .bouquets-grid .bouquet-card__out-of-stock { text-align: center; }
   .site-footer .footer-main { padding-top: 52px; padding-bottom: 40px; gap: 34px; }
   .footer-bottom .container { text-align: center; }
   .footer-bottom p { text-wrap: balance; }
