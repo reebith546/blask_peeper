@@ -133,7 +133,10 @@ ul { list-style: none; }
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  padding: 18px 0;
+  /* только вертикальные отступы — боковые берём у .container, чтобы
+     логотип был на одной линии с контентом и не липнул к краю */
+  padding-top: 18px;
+  padding-bottom: 18px;
 }
 .logo { display: flex; align-items: center; }
 .logo__image { height: 40px; width: auto; }
@@ -1213,7 +1216,7 @@ ul { list-style: none; }
   .container { padding: 0 20px; }
   .header-topbar { display: none; }
   .header-icons .header-phone { display: inline-flex; }
-  .site-header__inner { flex-wrap: nowrap; padding: 13px 0; gap: 12px; }
+  .site-header__inner { flex-wrap: nowrap; padding-top: 12px; padding-bottom: 12px; gap: 12px; }
   .header-icons { gap: 14px; }
   .header-phone span { font-size: 16px; }
   .nav a { padding-left: 20px; padding-right: 20px; }
@@ -1232,7 +1235,15 @@ ul { list-style: none; }
   .page-hero__title { font-size: 41px; }
   .hero__buttons { flex-direction: column; }
   .hero__buttons .btn { width: 100%; }
-  .section { padding: 64px 0; }
+  .section { padding: 44px 0; }
+  .advantages { padding: 44px 0; }
+  /* убираем двойной вертикальный отступ между соседними секциями */
+  .hero + .section,
+  .page-hero + .section,
+  .section + .section,
+  .section + .advantages,
+  .advantages + .section,
+  .advantages + .advantages { padding-top: 0; }
   .section-title { font-size: 38px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
   .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
