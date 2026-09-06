@@ -108,25 +108,6 @@ ul { list-style: none; }
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* Верхняя служебная полоса: часы работы, телефон, соцсети */
-.header-topbar {
-  background: var(--bg-darker);
-  border-bottom: 1px solid var(--border-soft);
-}
-.header-topbar__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 9px 0;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-}
-.header-topbar__note { color: var(--text-onDark-muted); }
-.header-topbar__links { display: flex; align-items: center; gap: 20px; }
-.header-topbar__links a { color: var(--text-onDark-soft); transition: color 0.3s ease; }
-.header-topbar__links a:hover { color: var(--accent); }
-.header-topbar__links svg { width: 15px; height: 15px; display: block; }
 
 .site-header__inner {
   display: flex;
@@ -169,19 +150,6 @@ ul { list-style: none; }
 .header-icons svg:hover { color: var(--accent); }
 
 .header-icons a { display: flex; }
-
-.header-icons .header-phone {
-  display: none;              /* на десктопе телефон живёт в верхней полосе */
-  align-items: center;
-  gap: 8px;
-  color: var(--text-onDark);
-  font-size: 17px;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color 0.3s ease;
-}
-.header-phone:hover { color: var(--accent); }
-.header-phone svg { width: 18px; height: 18px; color: var(--accent); }
 
 .header-icons__badge {
   position: relative;
@@ -635,15 +603,16 @@ ul { list-style: none; }
 }
 
 /* ============ CATEGORIES ============ */
+#categories { padding-top: 44px; }   /* блок стоял слишком низко — прижали к «Популярным» */
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 18px;
 }
 .category-card {
   position: relative;
   display: block;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 3 / 2;
   overflow: hidden;
   border-radius: 6px;
   isolation: isolate;
@@ -664,13 +633,13 @@ ul { list-style: none; }
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 34px;
+  bottom: 22px;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 26px 32px;
+  gap: 14px;
+  padding: 18px 24px;
   color: #fff;
   background: rgba(0, 0, 0, 0.78);
 }
@@ -678,7 +647,7 @@ ul { list-style: none; }
 .category-card__label {
   display: block;
   font-family: var(--display);
-  font-size: clamp(30px, 3.4vw, 46px);
+  font-size: clamp(22px, 2.4vw, 32px);
   line-height: 0.95;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -686,16 +655,16 @@ ul { list-style: none; }
 }
 .category-card__desc {
   display: block;
-  margin-top: 10px;
-  font-size: 14px;
-  letter-spacing: 0.2em;
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.85);
 }
 .category-card__arrow {
   flex-shrink: 0;
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
   display: flex;
@@ -1183,11 +1152,9 @@ ul { list-style: none; }
   .reviews-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-main { grid-template-columns: 1fr 1fr; gap: 48px 32px; }
   .instagram-grid { grid-template-columns: repeat(3, 1fr); }
-  .header-topbar__note { display: none; }
-  .header-topbar__inner { justify-content: flex-end; }
   /* Верхнее меню и бургер убраны — навигация уезжает в нижнюю панель.
      Корзина тоже переезжает вниз, чтобы в шапке остались только логотип
-     и телефон (иконка-бейдж корзины к тому же вылезала за край экрана). */
+     и соцсети (иконка-бейдж корзины к тому же вылезала за край экрана). */
   .nav, .nav-toggle, .header-icons__badge { display: none !important; }
 
   .bottom-nav {
@@ -1254,11 +1221,8 @@ ul { list-style: none; }
 
 @media (max-width: 720px) {
   .container { padding: 0 20px; }
-  .header-topbar { display: none; }
-  .header-icons .header-phone { display: inline-flex; }
   .site-header__inner { flex-wrap: nowrap; padding-top: 12px; padding-bottom: 12px; gap: 12px; }
-  .header-icons { gap: 14px; }
-  .header-phone span { font-size: 16px; }
+  .header-icons { gap: 16px; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 34px; }
   .hero { padding: 40px 0 60px; }
@@ -1282,12 +1246,14 @@ ul { list-style: none; }
   #categories { padding-top: 0; }
   .section-title { font-size: 38px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
-  .categories-grid { gap: 14px; }
+  .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
+  /* категории на мобилке — 2 колонки компактных карточек */
+  .categories-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .category-card { aspect-ratio: 4 / 5; }
-  .category-card__bar { bottom: 22px; padding: 20px 22px; }
-  .category-card__desc { margin-top: 8px; font-size: 12px; letter-spacing: 0.16em; }
-  .category-card__arrow { width: 46px; height: 46px; }
+  .category-card__bar { bottom: 10px; padding: 12px 14px; gap: 8px; }
+  .category-card__label { font-size: 19px; letter-spacing: 0.02em; }
+  .category-card__desc { display: none; }
+  .category-card__arrow { display: none; }
 
   /* Каталог на мобильном — сетка карточек в 2 колонки (компактные карточки). */
   .bouquets-grid { grid-template-columns: repeat(2, 1fr); gap: 16px 10px; }
