@@ -664,8 +664,6 @@ ul { list-style: none; }
   z-index: 1;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
   padding: 26px;
   color: #fff;
   background: linear-gradient(
@@ -674,6 +672,15 @@ ul { list-style: none; }
     rgba(19, 17, 16, 0.45) 38%,
     rgba(19, 17, 16, 0) 70%
   );
+}
+.category-card__bar {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0, 0, 0, 0.4);
 }
 .category-card__text { min-width: 0; }
 .category-card__label {
