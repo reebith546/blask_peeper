@@ -377,6 +377,26 @@ class PageSmokeTests(TestCase):
     def test_home_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:home')).status_code, 200)
 
+    def test_category_card_shows_name_and_description(self):
+        Category.objects.create(
+            name='Свадебные', slug='svadebnye',
+            description='Букеты для особенных моментов',
+            is_active=True, show_on_homepage=True,
+        )
+        html = self.client.get(reverse('main:home')).content.decode()
+        self.assertIn('category-card__label', html)
+        self.assertIn('Свадебные', html)
+        self.assertIn('category-card__desc', html)
+        self.assertIn('Букеты для особенных моментов', html)
+        self.assertIn('category-card__arrow', html)
+
+    def test_category_card_without_description_has_no_desc_line(self):
+        Category.objects.create(name='Розы', slug='rozy-card',
+                                is_active=True, show_on_homepage=True)
+        html = self.client.get(reverse('main:home')).content.decode()
+        self.assertIn('Розы', html)
+        self.assertNotIn('category-card__desc', html)
+
     def test_home_shows_all_popular_products(self):
         category = Category.objects.create(name='Категория')
         made = []

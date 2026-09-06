@@ -8,10 +8,11 @@ from .models import Category, Product, ProductImage
 
 @admin.register(Category)
 class CategoryAdmin(AuditModelAdmin, admin.ModelAdmin):
-    list_display = ('thumbnail', 'name', 'order', 'is_active', 'show_on_homepage')
+    list_display = ('thumbnail', 'name', 'description', 'order', 'is_active', 'show_on_homepage')
     list_editable = ('order', 'is_active', 'show_on_homepage')
     prepopulated_fields = {'slug': ('name',)}
-    search_fields = ('name',)
+    search_fields = ('name', 'description')
+    fields = ('name', 'slug', 'description', 'image', 'order', 'is_active', 'show_on_homepage')
 
     @admin.display(description='Фото')
     def thumbnail(self, obj):

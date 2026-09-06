@@ -7,6 +7,11 @@ class Category(models.Model):
 
     name = models.CharField('Название', max_length=150)
     slug = models.SlugField('Слаг (для URL)', max_length=160, unique=True, blank=True, allow_unicode=True)
+    description = models.CharField(
+        'Подпись под названием', max_length=200, blank=True,
+        help_text='Короткая строка под названием на карточке категории '
+                  '(напр. «Букеты для особенных моментов»).',
+    )
     image = models.ImageField('Изображение', upload_to='categories/', blank=True, null=True)
     order = models.PositiveIntegerField('Порядок сортировки', default=0)
     is_active = models.BooleanField('Активна', default=True)

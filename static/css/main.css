@@ -638,36 +638,76 @@ ul { list-style: none; }
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 20px;
 }
 .category-card {
   position: relative;
-  aspect-ratio: 4/3;
+  display: block;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
-  cursor: pointer;
+  border-radius: 14px;
+  isolation: isolate;
 }
 .category-card__image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.6s ease;
 }
-.category-card:hover .category-card__image { transform: scale(1.08); }
-.category-card::after {
-  content: "";
+.category-card__image--empty { background: var(--bg-dark); }
+.category-card:hover .category-card__image { transform: scale(1.06); }
+.category-card__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(19,17,16,0.75) 0%, rgba(19,17,16,0.05) 55%);
-}
-.category-card__label {
-  position: absolute;
-  left: 24px;
-  bottom: 22px;
   z-index: 1;
-  font-family: var(--display);
-  font-size: 31px;
-  font-weight: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px;
   color: #fff;
+  background: linear-gradient(
+    to top,
+    rgba(19, 17, 16, 0.86) 0%,
+    rgba(19, 17, 16, 0.45) 38%,
+    rgba(19, 17, 16, 0) 70%
+  );
+}
+.category-card__text { min-width: 0; }
+.category-card__label {
+  display: block;
+  font-family: var(--display);
+  font-size: clamp(30px, 3.4vw, 46px);
+  line-height: 0.95;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.category-card__desc {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+.category-card__arrow {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+.category-card:hover .category-card__arrow {
+  background: #fff;
+  border-color: #fff;
+  color: var(--bg-dark);
 }
 
 /* ============ ADVANTAGES ============ */
@@ -1246,6 +1286,11 @@ ul { list-style: none; }
   .section-title { font-size: 38px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
   .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
+  .categories-grid { gap: 14px; }
+  .category-card { aspect-ratio: 4 / 5; }
+  .category-card__overlay { padding: 22px; }
+  .category-card__desc { margin-top: 6px; font-size: 13px; }
+  .category-card__arrow { width: 46px; height: 46px; }
 
   /* Каталог на мобильном — сетка карточек в 2 колонки (компактные карточки). */
   .bouquets-grid { grid-template-columns: repeat(2, 1fr); gap: 16px 10px; }
