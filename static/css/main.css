@@ -658,29 +658,20 @@ ul { list-style: none; }
 }
 .category-card__image--empty { background: var(--bg-dark); }
 .category-card:hover .category-card__image { transform: scale(1.06); }
-.category-card__overlay {
+/* Полупрозрачная чёрная полоса поверх фото — внутри неё название и подпись. */
+.category-card__bar {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1;
   display: flex;
-  align-items: flex-end;
-  padding: 26px;
-  color: #fff;
-  background: linear-gradient(
-    to top,
-    rgba(19, 17, 16, 0.86) 0%,
-    rgba(19, 17, 16, 0.45) 38%,
-    rgba(19, 17, 16, 0) 70%
-  );
-}
-.category-card__bar {
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
+  padding: 22px 26px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
 }
 .category-card__text { min-width: 0; }
 .category-card__label {
@@ -1295,7 +1286,7 @@ ul { list-style: none; }
   .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
   .categories-grid { gap: 14px; }
   .category-card { aspect-ratio: 4 / 5; }
-  .category-card__overlay { padding: 22px; }
+  .category-card__bar { padding: 18px 20px; }
   .category-card__desc { margin-top: 6px; font-size: 13px; }
   .category-card__arrow { width: 46px; height: 46px; }
 

@@ -58,17 +58,15 @@
         {% else %}
           <span class="category-card__image category-card__image--empty"></span>
         {% endif %}
-        <span class="category-card__overlay">
-          <span class="category-card__bar">
-            <span class="category-card__text">
-              <span class="category-card__label">{{ category.name }}</span>
-              {% if category.description %}
-                <span class="category-card__desc">{{ category.description }}</span>
-              {% endif %}
-            </span>
-            <span class="category-card__arrow" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5.5 18.5 12 12 18.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
+        <span class="category-card__bar">
+          <span class="category-card__text">
+            <span class="category-card__label">{{ category.name }}</span>
+            {% if category.description %}
+              <span class="category-card__desc">{{ category.description }}</span>
+            {% endif %}
+          </span>
+          <span class="category-card__arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12 5.5 18.5 12 12 18.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
         </span>
       </a>
