@@ -645,7 +645,7 @@ ul { list-style: none; }
   display: block;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 6px;
   isolation: isolate;
 }
 .category-card__image {
@@ -672,7 +672,7 @@ ul { list-style: none; }
   gap: 16px;
   padding: 26px 32px;
   color: #fff;
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(0, 0, 0, 0.78);
 }
 .category-card__text { min-width: 0; }
 .category-card__label {
