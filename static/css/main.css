@@ -672,7 +672,7 @@ ul { list-style: none; }
   gap: 16px;
   padding: 26px 32px;
   color: #fff;
-  background: rgba(0, 0, 0, 0.44);
+  background: rgba(0, 0, 0, 0.62);
 }
 .category-card__text { min-width: 0; }
 .category-card__label {
