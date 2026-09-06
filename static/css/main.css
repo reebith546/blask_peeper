@@ -658,20 +658,21 @@ ul { list-style: none; }
 }
 .category-card__image--empty { background: var(--bg-dark); }
 .category-card:hover .category-card__image { transform: scale(1.06); }
-/* Полупрозрачная чёрная полоса поверх фото — внутри неё название и подпись. */
+/* Полупрозрачная чёрная полоса поверх фото — внутри неё название и подпись.
+   Полоса не прилипает к низу карточки: под ней остаётся часть фото. */
 .category-card__bar {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 34px;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 26px;
+  padding: 26px 32px;
   color: #fff;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.44);
 }
 .category-card__text { min-width: 0; }
 .category-card__label {
@@ -680,15 +681,16 @@ ul { list-style: none; }
   font-size: clamp(30px, 3.4vw, 46px);
   line-height: 0.95;
   font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .category-card__desc {
   display: block;
-  margin-top: 8px;
+  margin-top: 10px;
   font-size: 14px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.85);
 }
 .category-card__arrow {
   flex-shrink: 0;
@@ -1286,8 +1288,8 @@ ul { list-style: none; }
   .categories-grid, .advantages-grid, .reviews-grid, .footer-main { grid-template-columns: 1fr; }
   .categories-grid { gap: 14px; }
   .category-card { aspect-ratio: 4 / 5; }
-  .category-card__bar { padding: 18px 20px; }
-  .category-card__desc { margin-top: 6px; font-size: 13px; }
+  .category-card__bar { bottom: 22px; padding: 20px 22px; }
+  .category-card__desc { margin-top: 8px; font-size: 12px; letter-spacing: 0.16em; }
   .category-card__arrow { width: 46px; height: 46px; }
 
   /* Каталог на мобильном — сетка карточек в 2 колонки (компактные карточки). */
