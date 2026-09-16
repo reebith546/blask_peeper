@@ -4,7 +4,7 @@ from django.db import models
 class ShopLocation(models.Model):
     """Координаты магазина — точка отсчёта для расчёта зон доставки по радиусу."""
 
-    name = models.CharField('Название точки', max_length=150, default='Black Pepper Flower Bar')
+    name = models.CharField('Название точки', max_length=150, default='Blackpepper Flower Bar')
     address = models.CharField('Адрес', max_length=300, blank=True)
     latitude = models.DecimalField('Широта', max_digits=9, decimal_places=6)
     longitude = models.DecimalField('Долгота', max_digits=9, decimal_places=6)

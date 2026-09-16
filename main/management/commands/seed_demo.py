@@ -103,7 +103,7 @@ class Command(BaseCommand):
             )
 
         ShopLocation.objects.get_or_create(
-            name='Black Pepper Flower Bar',
+            name='Blackpepper Flower Bar',
             defaults={
                 # Ориентировочные координаты центра Алматы — уточните точный адрес магазина в админке.
                 'address': 'г. Алматы, ул. Кабанбай батыра, 47',

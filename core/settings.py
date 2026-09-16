@@ -141,8 +141,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Django Admin
-ADMIN_SITE_HEADER = 'Black Pepper Flower Bar — управление магазином'
-ADMIN_SITE_TITLE = 'Black Pepper Admin'
+ADMIN_SITE_HEADER = 'Blackpepper Flower Bar — управление магазином'
+ADMIN_SITE_TITLE = 'Blackpepper Admin'
 ADMIN_INDEX_TITLE = 'Панель управления'
 
 

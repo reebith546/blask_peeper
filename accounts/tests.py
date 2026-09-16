@@ -14,7 +14,7 @@ class SetupRolesCommandTests(TestCase):
         group = Group.objects.get(name=DIRECTOR_GROUP_NAME)
         apps = set(group.permissions.values_list('content_type__app_label', flat=True))
         # + audit — но только просмотр журнала
-        self.assertEqual(apps, {'catalog', 'orders', 'content', 'reviews', 'accounts', 'audit'})
+        self.assertEqual(apps, {'catalog', 'orders', 'content', 'reviews', 'delivery', 'accounts', 'audit'})
         codenames = set(group.permissions.values_list('codename', flat=True))
         self.assertFalse(any(c.startswith('delete_') for c in codenames))
         self.assertIn('view_auditevent', codenames)
