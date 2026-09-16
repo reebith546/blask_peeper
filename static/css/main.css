@@ -603,7 +603,10 @@ ul { list-style: none; }
 }
 
 /* ============ CATEGORIES ============ */
-#categories { padding-top: 44px; }   /* блок стоял слишком низко — прижали к «Популярным» */
+/* Между «Популярными сборками» и «Категориями» складывались два отступа
+   (100px снизу + 44px сверху) — визуально огромный разрыв. Оставляем один. */
+#popular { padding-bottom: 0; }
+#categories { padding-top: 44px; }
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1242,7 +1245,9 @@ ul { list-style: none; }
   .section { padding: 44px 0; }
   .advantages { padding: 44px 0; }
   /* «Категории» на главной прижимаем к блоку товаров над ними;
-     остальные секции сохраняют верхний отступ, чтобы не слипались. */
+     остальные секции сохраняют верхний отступ, чтобы не слипались.
+     #popular восстанавливает нижний отступ — на десктопе он обнулён. */
+  #popular { padding-bottom: 44px; }
   #categories { padding-top: 0; }
   .section-title { font-size: 38px; }
   .section-head { flex-direction: column; align-items: flex-start; gap: 12px; }
