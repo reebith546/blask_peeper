@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 
 from accounts.models import DIRECTOR_GROUP_NAME, SELLER_SECTION_GROUPS
 
-DIRECTOR_APPS = ['catalog', 'orders', 'content', 'reviews']
+DIRECTOR_APPS = ['catalog', 'orders', 'content', 'reviews', 'delivery']
 ACTIONS = ['view', 'add', 'change']  # без delete — ни у директора, ни у продавцов
 # Журнал действий: у директора только просмотр (add/change/delete не существуют
 # как права вовсе — журнал append-only). Продавцам это право не выдаётся никогда.
