@@ -139,6 +139,15 @@ def cart_remove(request, product_id):
 def checkout(request):
     cart = Cart(request)
     if len(cart) == 0:
+        # Корзина уже пуста — обычно потому, что заказ только что оформлен
+        # (checkout() чистит её сразу после создания заказа, до перехода на
+        # форму оплаты). Если клиент нажал «Назад» из шлюза и повторно
+        # отправил ту же (уже неактуальную) форму — не гоним его заново
+        # собирать корзину и заполнять форму, а ведём к его заказу: там уже
+        # есть кнопка «Оплатить ещё раз».
+        pending_order_id = request.session.get('pending_order_id')
+        if pending_order_id and Order.objects.filter(pk=pending_order_id).exists():
+            return redirect('main:order_success', order_id=pending_order_id)
         return redirect('catalog:product_list')
 
     context = {
@@ -236,6 +245,10 @@ def checkout(request):
                 price=entry['price'],
             )
         cart.clear()
+        # Запоминаем заказ в сессии — если клиент вернётся на пустой чекаут
+        # (например, кнопкой «Назад» из шлюза), его отправят на этот заказ,
+        # а не заставят собирать корзину и заполнять форму заново.
+        request.session['pending_order_id'] = order.pk
 
         if not gateway.payments_enabled():
             # Онлайн-оплата выключена — заказ уходит менеджеру целиком вручную.

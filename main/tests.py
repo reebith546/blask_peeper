@@ -284,6 +284,45 @@ class CheckoutFlowTests(TestCase):
         self.assertIn('value="pickup"', html)
         self.assertIn('Желтоксан', html)  # адрес самовывоза
 
+    # ---- «Назад» из шлюза не должен заставлять собирать заказ заново ----
+    # checkout() чистит корзину сразу после создания заказа (до перехода на
+    # оплату). Если клиент жмёт «Назад» и повторно шлёт тот же чекаут-запрос,
+    # корзина уже пуста — раньше это молча бросало его на каталог, стирая
+    # весь прогресс. Теперь его ведут на страницу уже созданного заказа.
+
+    def test_get_checkout_with_empty_cart_and_no_prior_order_goes_to_catalog(self):
+        response = self.client.get(reverse('main:checkout'))
+        self.assertRedirects(response, reverse('catalog:product_list'))
+
+    def test_revisiting_checkout_after_order_created_redirects_to_that_order(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        first = self._checkout()
+        order = Order.objects.get()
+        self.assertRedirects(first, reverse('main:order_success', args=[order.pk]))
+
+        # Корзина теперь пуста (как после ухода на шлюз и возврата «Назад»).
+        response = self.client.get(reverse('main:checkout'))
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+
+    def test_resubmitting_stale_checkout_form_does_not_lose_the_order(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout()
+        order = Order.objects.get()
+
+        # Клиент нажимает «Оформить заказ» ещё раз на устаревшей (bfcache)
+        # версии формы — корзина уже пуста, второй заказ создаваться не должен.
+        second = self._checkout()
+        self.assertEqual(Order.objects.count(), 1)
+        self.assertRedirects(second, reverse('main:order_success', args=[order.pk]))
+
+    def test_stale_pending_order_id_pointing_to_deleted_order_falls_back_to_catalog(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout()
+        order = Order.objects.get()
+        order.delete()
+        response = self.client.get(reverse('main:checkout'))
+        self.assertRedirects(response, reverse('catalog:product_list'))
+
 
 class DeliveryPriceTamperTests(TestCase):
     """Пробуем навязать серверу свою стоимость доставки всеми доступными способами.
