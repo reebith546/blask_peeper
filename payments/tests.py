@@ -295,15 +295,69 @@ class CheckoutWithPaymentsTests(TestCase):
 
     @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')
-    def test_unconfirmed_delivery_never_starts_payment(self, mock_post, quote):
+    def test_unconfirmed_delivery_still_charges_items_now(self, mock_post, quote):
+        # Доставка вне зоны (цена не рассчитана) — но букет всё равно
+        # оплачивается сразу: delivery_price = 0, в шлюз уходит только сумма
+        # товаров. Доставку менеджер согласует и примет отдельно.
         quote.return_value = (None, Decimal('0'), None, 'out_of_zone')
+        mock_post.return_value = _orders_create_ok(
+            url='https://pay.example.test/items-only', ext_id='GW-3')
         self._fill_cart()
         resp = self._checkout()
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], 'https://pay.example.test/items-only')
+
         order = Order.objects.get()
-        self.assertEqual(order.status, Order.Status.NEW)
-        self.assertEqual(order.payments.count(), 0)
-        mock_post.assert_not_called()
-        self.assertRedirects(resp, reverse('main:order_success', args=[order.pk]))
+        self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
+        self.assertIsNone(order.delivery_zone)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertIn('Букет уже оплачен онлайн', order.comment)
+
+        payment = order.payments.get()
+        self.assertEqual(payment.amount, self.product.price)
+        sent = mock_post.call_args.kwargs['json']
+        self.assertEqual(sent['Amount'], float(self.product.price))
+
+    @patch('main.views.quote_delivery')
+    @patch('payments.gateway.requests.post')
+    def test_on_request_delivery_also_charges_items_now(self, mock_post, quote):
+        far_zone = DeliveryZone.objects.create(
+            name='За городом', radius_from_km=100, radius_to_km=5000,
+            price=None, price_on_request=True,
+        )
+        quote.return_value = (far_zone, Decimal('0'), 150.0, 'on_request')
+        mock_post.return_value = _orders_create_ok(
+            url='https://pay.example.test/on-request', ext_id='GW-4')
+        self._fill_cart()
+        resp = self._checkout()
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], 'https://pay.example.test/on-request')
+
+        order = Order.objects.get()
+        self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
+        self.assertEqual(order.delivery_zone, far_zone)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertIn('ДОСТАВКА ПО СОГЛАСОВАНИЮ', order.comment)
+        self.assertIn('Букет уже оплачен онлайн', order.comment)
+
+    @patch('payments.gateway.requests.post')
+    def test_pickup_order_charges_items_now_no_delivery(self, mock_post):
+        mock_post.return_value = _orders_create_ok(
+            url='https://pay.example.test/pickup', ext_id='GW-5')
+        self._fill_cart()
+        resp = self._checkout(delivery_method='pickup', delivery_address='')
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], 'https://pay.example.test/pickup')
+
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_method, Order.DeliveryMethod.PICKUP)
+        self.assertEqual(order.status, Order.Status.PENDING_PAYMENT)
+        self.assertIsNone(order.delivery_zone)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertEqual(order.payments.get().amount, self.product.price)
 
     @patch('main.views.quote_delivery')
     @patch('payments.gateway.requests.post')

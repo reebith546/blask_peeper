@@ -17,10 +17,24 @@
     {% if order.status == 'paid' %}
       <span class="eyebrow">Оплачено</span>
       <h1 class="section-title">Заказ №{{ order.pk }} оплачен</h1>
+      {% if order.delivery_method == 'pickup' %}
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Оплата на сумму {{ order.total_price|kzt }} получена. Флорист приступает к сборке.
+        Заберите букет самостоятельно по адресу г. Алматы, ул. Желтоксан, 87а —
+        менеджер свяжется с вами по телефону {{ order.customer_phone }}, чтобы согласовать время.
+      </p>
+      {% elif order.delivery_zone and order.delivery_price %}
       <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
         Оплата на сумму {{ order.total_price|kzt }} получена. Флорист приступает к сборке,
         менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения деталей доставки.
       </p>
+      {% else %}
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Оплата за букет на сумму {{ order.total_price|kzt }} получена, флорист приступает к сборке.
+        Стоимость доставки по вашему адресу менеджер согласует по телефону {{ order.customer_phone }}
+        и примет её отдельно — она не входит в уже оплаченную сумму.
+      </p>
+      {% endif %}
 
     {% elif order.status == 'pending_payment' %}
       <span class="eyebrow">Ожидаем оплату</span>
@@ -48,7 +62,13 @@
     {% else %}
       <span class="eyebrow">Спасибо!</span>
       <h1 class="section-title">Заказ №{{ order.pk }} принят</h1>
-      {% if order.delivery_zone and order.delivery_price %}
+      {% if order.delivery_method == 'pickup' %}
+      <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
+        Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
+        заказа и времени самовывоза. Забрать букет можно бесплатно по адресу
+        г. Алматы, ул. Желтоксан, 87а. Итоговая сумма — {{ order.total_price|kzt }}.
+      </p>
+      {% elif order.delivery_zone and order.delivery_price %}
       <p class="hero__description" style="color: var(--text-onLight-muted); max-width: 600px; margin: 16px 0 32px;">
         Наш менеджер свяжется с вами по телефону {{ order.customer_phone }} для подтверждения
         деталей и оплаты. Итоговая сумма заказа — {{ order.total_price|kzt }}

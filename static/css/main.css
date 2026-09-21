@@ -1008,6 +1008,23 @@ ul { list-style: none; }
 .checkout-section__title { font-family: var(--display); font-size: 31px; font-weight: 500; margin-bottom: 20px; }
 .checkout-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
+.delivery-method { display: flex; gap: 24px; margin-bottom: 20px; }
+.delivery-method label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.delivery-method input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--text-onLight);
+  cursor: pointer;
+}
+
 /* ============ FOOTER ============ */
 .site-footer { background: #151312; color: var(--text-onDark); }
 /* Вертикальные отступы задаём через `.site-footer .footer-main` (специфичнее,

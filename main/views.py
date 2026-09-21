@@ -1,5 +1,6 @@
 import logging
 import re
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
@@ -159,7 +160,10 @@ def checkout(request):
 
         items_total = cart.get_total_price()
         comment = request.POST.get('comment', '').strip()
-        delivery_address = request.POST.get('delivery_address', '').strip()
+
+        delivery_method = request.POST.get('delivery_method', Order.DeliveryMethod.DELIVERY)
+        if delivery_method not in Order.DeliveryMethod.values:
+            delivery_method = Order.DeliveryMethod.DELIVERY
 
         # Единственный источник стоимости доставки — расчёт на сервере по адресу.
         # Никаких зон/координат/цен от клиента не принимаем: поля формы,
@@ -171,31 +175,50 @@ def checkout(request):
                 'игнорирую, стоимость доставки считает сервер (ip=%s)',
                 ', '.join(injected), _checkout_client_ip(request),
             )
-        delivery_zone, delivery_price, _distance_km, quote_state = quote_delivery(delivery_address)
-        delivery_confirmed = quote_state == 'ok'
-        if quote_state == 'on_request':
-            comment = (
-                f'ДОСТАВКА ПО СОГЛАСОВАНИЮ (зона «{delivery_zone.name}») — '
-                f'связаться с клиентом, назвать стоимость.\n' + comment
-            ).strip()
-        elif not delivery_confirmed:
-            comment = (
-                f'СТОИМОСТЬ ДОСТАВКИ НЕ РАССЧИТАНА ({quote_state}) — согласовать с '
-                f'клиентом перед подтверждением заказа.\n' + comment
-            ).strip()
+
+        if delivery_method == Order.DeliveryMethod.PICKUP:
+            # Самовывоз — доставки нет вообще, сумма известна сразу и целиком.
+            delivery_address = ''
+            delivery_zone, delivery_price, quote_state = None, Decimal('0'), 'pickup'
+            delivery_confirmed = True
+        else:
+            delivery_address = request.POST.get('delivery_address', '').strip()
+            delivery_zone, delivery_price, _distance_km, quote_state = quote_delivery(delivery_address)
+            delivery_confirmed = quote_state == 'ok'
+            # Пока стоимость доставки не подтверждена, в онлайн-оплату уходит
+            # только сумма букетов (delivery_price = 0 для этих состояний) —
+            # доставку менеджер согласует и примет отдельно после звонка.
+            if quote_state == 'on_request':
+                note = (
+                    f'ДОСТАВКА ПО СОГЛАСОВАНИЮ (зона «{delivery_zone.name}») — '
+                    f'связаться с клиентом, назвать стоимость.'
+                )
+                if gateway.payments_enabled():
+                    note += ' Букет уже оплачен онлайн — доставку принять отдельно.'
+                comment = (note + '\n' + comment).strip()
+            elif not delivery_confirmed:
+                note = (
+                    f'СТОИМОСТЬ ДОСТАВКИ НЕ РАССЧИТАНА ({quote_state}) — согласовать '
+                    f'с клиентом перед подтверждением заказа.'
+                )
+                if gateway.payments_enabled():
+                    note += ' Букет уже оплачен онлайн — доставку принять отдельно.'
+                comment = (note + '\n' + comment).strip()
 
         order = Order.objects.create(
-            # В оплату уводим только заказ с подтверждённой суммой доставки —
-            # иначе не с чем идти в платёжный шлюз.
+            # В онлайн-оплату уходит любой заказ, если она включена: сумма букетов
+            # известна всегда, а доставка либо уже посчитана, либо временно = 0
+            # и её отдельно согласует и примет менеджер (см. комментарий выше).
             status=(
                 Order.Status.PENDING_PAYMENT
-                if (gateway.payments_enabled() and delivery_confirmed)
+                if gateway.payments_enabled()
                 else Order.Status.NEW
             ),
             customer_name=request.POST.get('customer_name', '').strip(),
             customer_phone=_normalize_phone(request.POST.get('customer_phone')),
             recipient_name=request.POST.get('recipient_name', '').strip(),
             recipient_phone=_normalize_phone(request.POST.get('recipient_phone')),
+            delivery_method=delivery_method,
             delivery_zone=delivery_zone,
             delivery_address=delivery_address,
             delivery_date=request.POST.get('delivery_date') or None,
@@ -214,10 +237,8 @@ def checkout(request):
             )
         cart.clear()
 
-        if not (gateway.payments_enabled() and delivery_confirmed):
-            # Онлайн-оплата выключена ЛИБО стоимость доставки ещё не подтверждена —
-            # заказ уходит менеджеру: он согласует сумму и (при необходимости)
-            # пришлёт ссылку на оплату.
+        if not gateway.payments_enabled():
+            # Онлайн-оплата выключена — заказ уходит менеджеру целиком вручную.
             return redirect('main:order_success', order_id=order.pk)
 
         # Онлайн-оплата: создаём счёт и уводим клиента на форму шлюза.

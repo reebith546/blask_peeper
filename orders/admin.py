@@ -39,11 +39,11 @@ class PaymentInline(admin.TabularInline):
 class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
     list_display = (
         'id', 'recipient_name', 'recipient_phone', 'customer_name', 'customer_phone',
-        'address_short', 'status', 'payment_state',
+        'delivery_method', 'address_short', 'status', 'payment_state',
         'total_price_display', 'delivery_date', 'created_at',
     )
     list_editable = ('status',)
-    list_filter = ('status', 'delivery_zone', 'created_at')
+    list_filter = ('status', 'delivery_method', 'delivery_zone', 'created_at')
     search_fields = (
         'id', 'customer_name', 'customer_phone',
         'recipient_name', 'recipient_phone', 'delivery_address',
@@ -58,7 +58,7 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
         ('Получатель', {'fields': ('recipient_name', 'recipient_phone')}),
         ('Отправитель (заказчик)', {'fields': ('customer_name', 'customer_phone')}),
         ('Доставка', {'fields': (
-            'delivery_zone', 'delivery_address', 'delivery_price',
+            'delivery_method', 'delivery_zone', 'delivery_address', 'delivery_price',
             'delivery_date', 'delivery_time',
         )}),
         ('Открытка и комментарий', {'fields': ('card_text', 'comment')}),
@@ -75,6 +75,8 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
     @admin.display(description='Адрес', ordering='delivery_address')
     def address_short(self, obj):
         # В списке — коротко (полный адрес и комментарий видно в карточке заказа).
+        if obj.delivery_method == Order.DeliveryMethod.PICKUP:
+            return 'Самовывоз'
         return Truncator(obj.delivery_address).chars(38) or '—'
 
     @admin.display(description='Оплата')

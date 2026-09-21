@@ -15,8 +15,16 @@ class Order(models.Model):
         DELIVERED = 'delivered', 'Доставлен'
         PAYMENT_FAILED = 'payment_failed', 'Ошибка оплаты'
 
+    class DeliveryMethod(models.TextChoices):
+        DELIVERY = 'delivery', 'Доставка'
+        PICKUP = 'pickup', 'Самовывоз'
+
     status = models.CharField(
         'Статус', max_length=20, choices=Status.choices, default=Status.NEW,
+    )
+    delivery_method = models.CharField(
+        'Способ получения', max_length=20,
+        choices=DeliveryMethod.choices, default=DeliveryMethod.DELIVERY,
     )
 
     # Отправитель (заказчик) — тот, кто оформляет заказ, ему звонит менеджер.
@@ -34,7 +42,7 @@ class Order(models.Model):
         DeliveryZone, verbose_name='Зона доставки', related_name='orders',
         on_delete=models.PROTECT, null=True, blank=True,
     )
-    delivery_address = models.CharField('Адрес доставки', max_length=300)
+    delivery_address = models.CharField('Адрес доставки', max_length=300, blank=True)
     delivery_date = models.DateField('Дата доставки', null=True, blank=True)
     delivery_time = models.CharField(
         'Время доставки', max_length=50, blank=True,

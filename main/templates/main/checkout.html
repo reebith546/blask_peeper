@@ -36,12 +36,49 @@
       if (totalEl) totalEl.textContent = money(itemsTotal){% if yandex_enabled %} + ' + доставка'{% endif %};
       if (noteEl) noteEl.textContent = '';
     }
-    return { init: init, showPreview: showPreview, reset: reset };
+    function showPickup() {
+      var priceEl = document.getElementById('checkout-delivery-price');
+      var totalEl = document.getElementById('checkout-total-price');
+      var noteEl = document.getElementById('delivery-note');
+      if (priceEl) priceEl.textContent = 'бесплатно';
+      if (totalEl) totalEl.textContent = money(itemsTotal);
+      if (noteEl) noteEl.textContent = '';
+    }
+    return { init: init, showPreview: showPreview, reset: reset, showPickup: showPickup };
   })();
   document.addEventListener('DOMContentLoaded', function () {
     window.BPF_CHECKOUT.init();
     window.BPF_CHECKOUT.reset();
   });
+
+  // Доставка / самовывоз — переключение полей формы и предпросмотра суммы.
+  (function () {
+    function sync() {
+      var checked = document.querySelector('input[name="delivery_method"]:checked');
+      var isPickup = checked && checked.value === 'pickup';
+      var deliveryFields = document.getElementById('delivery-fields');
+      var pickupFields = document.getElementById('pickup-fields');
+      var addressInput = document.getElementById('delivery-address');
+      var dateLabel = document.getElementById('delivery-date-label');
+      var timeLabel = document.getElementById('delivery-time-label');
+      if (deliveryFields) deliveryFields.hidden = isPickup;
+      if (pickupFields) pickupFields.hidden = !isPickup;
+      if (addressInput) addressInput.required = !isPickup;
+      if (dateLabel) dateLabel.textContent = isPickup ? 'Дата самовывоза' : 'Дата доставки';
+      if (timeLabel) timeLabel.textContent = isPickup ? 'Время самовывоза' : 'Время доставки';
+      if (isPickup) {
+        window.BPF_CHECKOUT.showPickup();
+      } else {
+        window.BPF_CHECKOUT.reset();
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('input[name="delivery_method"]').forEach(function (el) {
+        el.addEventListener('change', sync);
+      });
+      sync();
+    });
+  })();
 
   // Телефон: жёстко «+7», далее максимум 10 цифр номера.
   (function () {
@@ -172,19 +209,50 @@
 
         <div class="checkout-section">
           <h2 class="checkout-section__title">Доставка</h2>
-          <div class="form-field address-suggest">
-            <label for="delivery-address">Адрес доставки</label>
-            <input type="text" id="delivery-address" name="delivery_address" placeholder="Город, улица, дом, квартира" autocomplete="off" required>
-            <ul id="address-suggest-list" class="address-suggest__list" hidden></ul>
-            <span class="empty-note" id="delivery-note"></span>
+
+          <div class="delivery-method">
+            <label>
+              <input type="radio" name="delivery_method" value="delivery" id="delivery-method-delivery" checked>
+              <span>Доставка</span>
+            </label>
+            <label>
+              <input type="radio" name="delivery_method" value="pickup" id="delivery-method-pickup">
+              <span>Самовывоз</span>
+            </label>
           </div>
+
+          <div id="delivery-fields">
+            <div class="form-field address-suggest">
+              <label for="delivery-address">Адрес доставки</label>
+              <input type="text" id="delivery-address" name="delivery_address" placeholder="Город, улица, дом, квартира" autocomplete="off" required>
+              <ul id="address-suggest-list" class="address-suggest__list" hidden></ul>
+              <span class="empty-note" id="delivery-note"></span>
+            </div>
+            <p class="empty-note">
+              {% if yandex_enabled %}
+                Стоимость доставки считается по адресу автоматически. Если адрес не
+                распознается, менеджер уточнит сумму и пришлёт её вместе с подтверждением.
+              {% else %}
+                Стоимость доставки согласует менеджер после оформления заказа.
+              {% endif %}
+            </p>
+          </div>
+
+          <div id="pickup-fields" hidden>
+            <p class="empty-note">
+              Забрать букет можно самостоятельно, бесплатно, по адресу:
+              <strong>г. Алматы, ул. Желтоксан, 87а</strong> (Пн–Вс, 11:00–21:00).
+              Менеджер позвонит согласовать время.
+            </p>
+          </div>
+
           <div class="checkout-row">
             <div class="form-field">
-              <label for="delivery-date">Дата доставки</label>
+              <label for="delivery-date" id="delivery-date-label">Дата доставки</label>
               <input type="date" id="delivery-date" name="delivery_date">
             </div>
             <div class="form-field">
-              <label for="delivery-time">Время доставки</label>
+              <label for="delivery-time" id="delivery-time-label">Время доставки</label>
               <input type="text" id="delivery-time" name="delivery_time" placeholder="Например, 14:00–16:00">
             </div>
           </div>
@@ -192,14 +260,6 @@
             <label for="card-text">Текст открытки (необязательно)</label>
             <textarea id="card-text" name="card_text" placeholder="Что написать на открытке?"></textarea>
           </div>
-          <p class="empty-note">
-            {% if yandex_enabled %}
-              Стоимость доставки считается по адресу автоматически. Если адрес не
-              распознается, менеджер уточнит сумму и пришлёт её вместе с подтверждением.
-            {% else %}
-              Стоимость доставки согласует менеджер после оформления заказа.
-            {% endif %}
-          </p>
           <div class="form-field">
             <label for="comment">Комментарий к заказу (необязательно)</label>
             <textarea id="comment" name="comment"></textarea>

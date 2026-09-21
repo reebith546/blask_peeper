@@ -245,6 +245,45 @@ class CheckoutFlowTests(TestCase):
         self.assertIn('За городом', order.comment)
         self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
 
+    # ---- самовывоз ----
+
+    @patch('main.views.quote_delivery')
+    def test_pickup_order_skips_delivery_pricing_entirely(self, quote):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        response = self._checkout(delivery_method='pickup', delivery_address='')
+        quote.assert_not_called()  # самовывоз — геокодировать нечего
+
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_method, Order.DeliveryMethod.PICKUP)
+        self.assertIsNone(order.delivery_zone)
+        self.assertEqual(order.delivery_price, Decimal('0'))
+        self.assertEqual(order.delivery_address, '')
+        self.assertEqual(order.total_price, self.product.price)
+        self.assertEqual(order.status, Order.Status.NEW)
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+
+    def test_pickup_ignores_leftover_address_from_the_form(self):
+        # Если клиент переключился с доставки на самовывоз, не стерев адрес —
+        # сервер всё равно должен считать заказ самовывозом без адреса.
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout(delivery_method='pickup', delivery_address='ул. Абая, 10')
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_method, Order.DeliveryMethod.PICKUP)
+        self.assertEqual(order.delivery_address, '')
+
+    def test_unknown_delivery_method_falls_back_to_delivery(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self._checkout(delivery_method='teleport')
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_method, Order.DeliveryMethod.DELIVERY)
+
+    def test_checkout_page_offers_delivery_and_pickup_choice(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        html = self.client.get(reverse('main:checkout')).content.decode()
+        self.assertIn('value="delivery"', html)
+        self.assertIn('value="pickup"', html)
+        self.assertIn('Желтоксан', html)  # адрес самовывоза
+
 
 class DeliveryPriceTamperTests(TestCase):
     """Пробуем навязать серверу свою стоимость доставки всеми доступными способами.
