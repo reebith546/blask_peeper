@@ -28,8 +28,8 @@ class OrderItemInline(admin.TabularInline):
         if not obj.pk or not obj.product_id or not obj.product.image:
             return '—'
         return format_html(
-            '<img src="{}" style="width:110px;height:110px;object-fit:cover;'
-            'border-radius:6px;">',
+            '<img src="{}" style="width:200px;height:200px;object-fit:cover;'
+            'border-radius:8px;">',
             obj.product.image.url,
         )
 
