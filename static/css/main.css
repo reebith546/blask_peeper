@@ -122,6 +122,12 @@ ul { list-style: none; }
 .logo { display: flex; align-items: center; }
 .logo__image { height: 52px; width: auto; }
 
+/* Переход по якорям из шапки/футера (#categories, #advantages, #footer) —
+   иначе прилипающий сверху .site-header перекрывает начало раздела, на
+   который прыгает браузер. Отступ подобран под фактическую высоту шапки
+   на каждой ширине экрана (см. переопределения в медиазапросах ниже). */
+#categories, #advantages, #footer { scroll-margin-top: 96px; }
+
 .nav {
   display: flex;
   gap: 36px;
@@ -1166,6 +1172,9 @@ ul { list-style: none; }
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1200px) {
   .container { padding: 0 40px; }
+  /* .container зануляет вертикальные паддинги шапки (у неё тот же класс
+     .container) — высота шапки на этой ширине равна просто высоте логотипа. */
+  #categories, #advantages, #footer { scroll-margin-top: 64px; }
   .hero__title { font-size: 77px; }
   .page-hero__title { font-size: 55px; }
   .bouquets-grid, .categories-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1246,6 +1255,7 @@ ul { list-style: none; }
   .header-icons { gap: 16px; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 44px; }
+  #categories, #advantages, #footer { scroll-margin-top: 80px; }
   .hero { padding: 40px 0 60px; }
   .hero--image { min-height: 420px; padding: 64px 0; }
   .hero--image::before {
