@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from django.utils.text import Truncator
 
 from audit.admin_mixins import AuditModelAdmin
@@ -14,8 +15,21 @@ def _kzt(amount):
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    fields = ('product', 'quantity', 'price', 'subtotal_display')
-    readonly_fields = ('price', 'subtotal_display')
+    fields = ('product_photo', 'product', 'quantity', 'price', 'subtotal_display')
+    readonly_fields = ('product_photo', 'price', 'subtotal_display')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('product')
+
+    @admin.display(description='Фото')
+    def product_photo(self, obj):
+        if not obj.pk or not obj.product_id or not obj.product.image:
+            return '—'
+        return format_html(
+            '<img src="{}" style="width:64px;height:64px;object-fit:cover;'
+            'border-radius:6px;">',
+            obj.product.image.url,
+        )
 
     @admin.display(description='Сумма')
     def subtotal_display(self, obj):
