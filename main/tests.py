@@ -326,9 +326,10 @@ class CheckoutFlowTests(TestCase):
     # ---- уведомление о новом заказе в Telegram ----
 
     def test_checkout_notifies_telegram_about_the_new_order(self):
-        from notify.models import TelegramSettings
+        from notify.models import TelegramRecipient, TelegramSettings
 
-        TelegramSettings.objects.create(is_enabled=True, bot_token='t', chat_id='42')
+        TelegramSettings.objects.create(is_enabled=True, bot_token='t')
+        TelegramRecipient.objects.create(chat_id='42')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
         with patch('main.views.telegram.notify_new_order') as mocked:
             self._checkout()
@@ -338,9 +339,10 @@ class CheckoutFlowTests(TestCase):
     def test_checkout_does_not_fail_when_telegram_is_unreachable(self):
         import requests
 
-        from notify.models import TelegramSettings
+        from notify.models import TelegramRecipient, TelegramSettings
 
-        TelegramSettings.objects.create(is_enabled=True, bot_token='t', chat_id='42')
+        TelegramSettings.objects.create(is_enabled=True, bot_token='t')
+        TelegramRecipient.objects.create(chat_id='42')
         self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
         with patch('notify.services.requests.post', side_effect=requests.ConnectionError('boom')):
             response = self._checkout()

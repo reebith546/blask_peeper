@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from audit.admin_mixins import AuditModelAdmin
 
 from . import services
-from .models import TelegramSettings
+from .models import TelegramRecipient, TelegramSettings
 
 
 class TelegramSettingsForm(forms.ModelForm):
@@ -23,7 +23,7 @@ class TelegramSettingsForm(forms.ModelForm):
 
     class Meta:
         model = TelegramSettings
-        fields = ('is_enabled', 'bot_token', 'chat_id')
+        fields = ('is_enabled', 'bot_token')
 
     def clean_bot_token(self):
         value = self.cleaned_data.get('bot_token', '')
@@ -32,24 +32,41 @@ class TelegramSettingsForm(forms.ModelForm):
         return value
 
 
+class TelegramRecipientInline(admin.TabularInline):
+    """Кому слать уведомления — можно добавить сколько угодно чатов вручную,
+    либо кнопкой «Найти и добавить получателя» выше подтянуть следующий
+    чат по последнему сообщению боту."""
+
+    model = TelegramRecipient
+    extra = 1
+    fields = ('chat_id', 'label', 'created_at')
+    readonly_fields = ('created_at',)
+
+
 @admin.register(TelegramSettings)
 class TelegramSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
     """Реквизиты Telegram-бота — заполняет владелец. Только для superuser."""
 
     form = TelegramSettingsForm
     audit_exclude_fields = ('bot_token',)
+    inlines = [TelegramRecipientInline]
     readonly_fields = ('status_note', 'find_chat_id_button', 'send_test_button', 'updated_at')
     fieldsets = (
         ('Уведомления о новых заказах', {'fields': ('is_enabled', 'status_note')}),
         ('Бот', {
-            'fields': ('bot_token', 'chat_id', 'find_chat_id_button', 'send_test_button'),
+            'fields': ('bot_token', 'find_chat_id_button', 'send_test_button'),
             'description': (
                 '1. Создайте бота через <a href="https://t.me/BotFather" target="_blank" '
                 'rel="noopener">@BotFather</a> командой /newbot, вставьте сюда токен и '
                 'сохраните.<br>'
-                '2. Напишите этому боту в Telegram любое сообщение (например «привет»).<br>'
-                '3. Нажмите «Найти chat ID» — он подставится сам. Кнопка «Тестовое '
-                'сообщение» проверит, что всё работает.'
+                '2. Чтобы добавить получателя — пусть он напишет этому боту в Telegram '
+                'любое сообщение (например «привет»), затем нажмите «Найти и добавить '
+                'получателя»: чат появится в списке ниже. Так можно добавить сколько '
+                'угодно получателей (владелец, менеджеры, отдельная группа) — просто '
+                'пусть каждый по очереди напишет боту, и после каждого нажимайте кнопку '
+                'заново. Chat ID группы можно и вписать вручную в список ниже.<br>'
+                '3. Кнопка «Тестовое сообщение» разошлёт проверочный текст всем '
+                'получателям из списка.'
             ),
         }),
         (None, {'fields': ('updated_at',)}),
@@ -106,19 +123,27 @@ class TelegramSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
             except services.TelegramError as exc:
                 messages.error(request, f'Не удалось найти chat ID: {exc}')
             else:
-                obj.chat_id = chat_id
-                obj.save(update_fields=['chat_id', 'updated_at'])
-                messages.success(request, f'Chat ID найден и сохранён: «{title}» ({chat_id}).')
+                recipient, created = TelegramRecipient.objects.get_or_create(
+                    chat_id=chat_id, defaults={'label': title},
+                )
+                if created:
+                    messages.success(request, f'Добавлен новый получатель: «{title}» ({chat_id}).')
+                else:
+                    messages.info(request, f'«{title}» ({chat_id}) уже есть в списке получателей.')
         return redirect(reverse('admin:notify_telegramsettings_change', args=[obj.pk]))
 
     def send_test_view(self, request, object_id):
         obj = TelegramSettings.load()
         if not obj.is_ready:
-            messages.error(request, 'Заполните токен, chat ID и включите уведомления.')
-        elif services.send_message('✅ Тестовое сообщение от Blackpepper Flower Bar.'):
-            messages.success(request, 'Тестовое сообщение отправлено — проверьте Telegram.')
+            messages.error(request, 'Заполните токен, добавьте хотя бы одного получателя и включите уведомления.')
         else:
-            messages.error(request, 'Не удалось отправить сообщение — подробности в логах сервера.')
+            sent, total = services.send_test_message()
+            if sent == total:
+                messages.success(request, f'Тестовое сообщение отправлено всем получателям ({sent} из {total}).')
+            elif sent:
+                messages.warning(request, f'Тестовое сообщение отправлено не всем: {sent} из {total}. Подробности — в логах сервера.')
+            else:
+                messages.error(request, 'Не удалось отправить сообщение ни одному получателю — подробности в логах сервера.')
         return redirect(reverse('admin:notify_telegramsettings_change', args=[obj.pk]))
 
     def _action_button(self, obj, url_name, label):
@@ -136,23 +161,39 @@ class TelegramSettingsAdmin(AuditModelAdmin, admin.ModelAdmin):
             url, get_token(request), label,
         )
 
-    @admin.display(description='Найти получателя')
+    @admin.display(description='Добавить получателя')
     def find_chat_id_button(self, obj):
         return self._action_button(
             obj, 'admin:notify_telegramsettings_find_chat_id',
-            'Найти chat ID по последнему сообщению боту',
+            'Найти и добавить получателя по последнему сообщению боту',
         )
 
     @admin.display(description='Проверка')
     def send_test_button(self, obj):
         return self._action_button(
-            obj, 'admin:notify_telegramsettings_send_test', 'Отправить тестовое сообщение',
+            obj, 'admin:notify_telegramsettings_send_test', 'Отправить тестовое сообщение всем',
         )
 
     @admin.display(description='Состояние')
     def status_note(self, obj):
+        count = TelegramRecipient.objects.count()
         if services.notifications_enabled():
-            return 'Уведомления в Telegram активны.'
-        if obj and obj.is_enabled and not (obj.bot_token and obj.chat_id):
-            return 'Флаг включён, но не заполнены токен и chat ID — уведомления не отправляются.'
+            word = _pluralize_recipients(count)
+            return f'Уведомления в Telegram активны — получателей: {count} {word}.'
+        if obj and obj.is_enabled and not obj.bot_token:
+            return 'Флаг включён, но не сохранён токен бота — уведомления не отправляются.'
+        if obj and obj.is_enabled and obj.bot_token and count == 0:
+            return 'Флаг включён и токен сохранён, но нет ни одного получателя — добавьте хотя бы одного.'
         return 'Уведомления выключены.'
+
+
+def _pluralize_recipients(count):
+    n = count % 100
+    if 11 <= n <= 14:
+        return 'получателей'
+    n = n % 10
+    if n == 1:
+        return 'получатель'
+    if 2 <= n <= 4:
+        return 'получателя'
+    return 'получателей'

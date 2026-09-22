@@ -1,19 +1,22 @@
 """Уведомления о новых заказах в Telegram.
 
-Бот и получатель настраиваются в админке («Настройки Telegram-уведомлений»):
-владелец создаёт бота через @BotFather, вставляет токен, пишет этому боту
-любое сообщение и нажимает «Найти chat ID» — дальше находить получателя
-вручную не нужно. Отправка — обычный Bot API: POST /bot<token>/sendMessage.
+Бот и получатели настраиваются в админке («Настройки Telegram-уведомлений»):
+владелец создаёт бота через @BotFather, вставляет токен; получателей
+(TelegramRecipient) может быть несколько — каждый пишет боту любое
+сообщение, затем кнопкой «Найти и добавить получателя» его чат подтягивается
+в список. Отправка — обычный Bot API: POST /bot<token>/sendMessage, по
+очереди каждому получателю.
 
-  notify_new_order()     — уведомить о только что созданном заказе
-  send_message()          — отправить произвольный текст в настроенный чат
+  notify_new_order()     — уведомить всех получателей о новом заказе
+  send_message()          — отправить текст всем получателям
+  send_test_message()     — то же самое, но возвращает (отправлено, всего)
   find_chat_id()           — вытащить chat_id из последнего сообщения боту
 """
 import logging
 
 import requests
 
-from .models import TelegramSettings
+from .models import TelegramRecipient, TelegramSettings
 
 logger = logging.getLogger('notify')
 
@@ -64,32 +67,53 @@ def _format_new_order(order):
     )
 
 
-def send_message(text):
-    """Отправляет текст в настроенный чат. Ничего не бросает — возвращает
-    True/False, ошибки только логируются (уведомление не должно ронять
-    оформление заказа или админку)."""
-    cfg = get_config()
-    if cfg is None:
-        return False
-    url = f'{API_BASE}/bot{cfg.bot_token}/sendMessage'
+def _send_one(bot_token, chat_id, text):
+    url = f'{API_BASE}/bot{bot_token}/sendMessage'
     try:
         resp = requests.post(
             url, timeout=_TIMEOUT,
-            json={'chat_id': cfg.chat_id, 'text': text, 'parse_mode': 'HTML'},
+            json={'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'},
         )
         data = resp.json()
     except (requests.RequestException, ValueError):
-        logger.exception('telegram: не удалось отправить сообщение')
+        logger.exception('telegram: не удалось отправить сообщение в чат %s', chat_id)
         return False
     if not data.get('ok'):
-        logger.error('telegram: sendMessage отказал: %s', data)
+        logger.error('telegram: sendMessage отказал (чат %s): %s', chat_id, data)
         return False
     return True
 
 
+def _send_to_all(bot_token, text):
+    """Возвращает (сколько получателей получили сообщение, всего получателей)."""
+    chat_ids = list(TelegramRecipient.objects.values_list('chat_id', flat=True))
+    sent = sum(_send_one(bot_token, chat_id, text) for chat_id in chat_ids)
+    return sent, len(chat_ids)
+
+
+def send_message(text):
+    """Отправляет текст всем настроенным получателям. Ничего не бросает —
+    возвращает True, если сообщение ушло хотя бы одному (ошибки только
+    логируются: уведомление не должно ронять оформление заказа или админку)."""
+    cfg = get_config()
+    if cfg is None:
+        return False
+    sent, _total = _send_to_all(cfg.bot_token, text)
+    return sent > 0
+
+
+def send_test_message():
+    """Как send_message, но возвращает (отправлено, всего) — для админки,
+    чтобы показать точнее, чем просто True/False."""
+    cfg = get_config()
+    if cfg is None:
+        return 0, 0
+    return _send_to_all(cfg.bot_token, '✅ Тестовое сообщение от Blackpepper Flower Bar.')
+
+
 def notify_new_order(order):
-    """Уведомляет о новом заказе. Молча ничего не делает, если уведомления
-    не настроены/выключены."""
+    """Уведомляет всех получателей о новом заказе. Молча ничего не делает,
+    если уведомления не настроены/выключены."""
     if not notifications_enabled():
         return False
     return send_message(_format_new_order(order))
