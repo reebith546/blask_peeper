@@ -127,6 +127,14 @@ def create_payment(order):
     )
 
 
+def _order_description(order):
+    """Текст назначения платежа — виден клиенту на форме оплаты TipTop Pay
+    и в реестре операций личного кабинета. Ограничение шлюза — 255 символов."""
+    items = ', '.join(f'{item.product.name} ×{item.quantity}' for item in order.items.all())
+    text = f'Заказ №{order.pk}: {items}' if items else f'Заказ №{order.pk}'
+    return text[:255]
+
+
 def init_payment(payment, *, success_url, fail_url, **_ignored):
     """Создаёт счёт через /orders/create, сохраняет form_url/external_id,
     возвращает ссылку на форму оплаты (Model.Url).
@@ -140,7 +148,7 @@ def init_payment(payment, *, success_url, fail_url, **_ignored):
     payload = {
         'Amount': float(payment.amount),
         'Currency': payment.currency,
-        'Description': f'Заказ №{order.pk} — {settings.ADMIN_SITE_TITLE}',
+        'Description': _order_description(order),
         'InvoiceId': payment.invoice_id,
         'AccountId': f'order-{order.pk}',
         'Phone': order.customer_phone or '',

@@ -87,6 +87,51 @@ class SignatureTests(TestCase):
 
 
 # ----------------------------------------------------------------------
+#  Description счёта — то, что клиент видит на форме оплаты TipTop Pay
+# ----------------------------------------------------------------------
+@override_settings(**SETTINGS)
+class OrderDescriptionTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Кат')
+
+    def test_description_lists_bouquet_names_and_quantities(self):
+        from orders.models import OrderItem
+
+        order = Order.objects.create(
+            customer_name='Иван', customer_phone='+77070000000',
+            delivery_address='ул. Абая, 10', total_price=Decimal('20000'),
+        )
+        rose = Product.objects.create(name='Розы красные', category=self.category, price=Decimal('15000'))
+        tulip = Product.objects.create(name='Тюльпаны белые', category=self.category, price=Decimal('5000'))
+        OrderItem.objects.create(order=order, product=rose, quantity=2, price=rose.price)
+        OrderItem.objects.create(order=order, product=tulip, quantity=1, price=tulip.price)
+
+        description = gateway._order_description(order)
+        self.assertIn(f'Заказ №{order.pk}', description)
+        self.assertIn('Розы красные ×2', description)
+        self.assertIn('Тюльпаны белые ×1', description)
+
+    def test_description_falls_back_to_order_number_without_items(self):
+        order = Order.objects.create(
+            customer_name='Иван', customer_phone='+77070000000',
+            delivery_address='ул. Абая, 10', total_price=Decimal('20000'),
+        )
+        self.assertEqual(gateway._order_description(order), f'Заказ №{order.pk}')
+
+    def test_description_is_truncated_to_255_chars(self):
+        order = Order.objects.create(
+            customer_name='Иван', customer_phone='+77070000000',
+            delivery_address='ул. Абая, 10', total_price=Decimal('20000'),
+        )
+        from orders.models import OrderItem
+
+        long_name = 'Очень' + 'о' * 300
+        product = Product.objects.create(name=long_name[:200], category=self.category, price=Decimal('1000'))
+        OrderItem.objects.create(order=order, product=product, quantity=1, price=product.price)
+        self.assertLessEqual(len(gateway._order_description(order)), 255)
+
+
+# ----------------------------------------------------------------------
 #  apply_callback: перевод Payment/Order по результату
 # ----------------------------------------------------------------------
 @override_settings(**SETTINGS)
@@ -280,6 +325,10 @@ class CheckoutWithPaymentsTests(TestCase):
         self.assertEqual(sent['InvoiceId'], payment.invoice_id)
         self.assertEqual(sent['Amount'], 20000.0)
         self.assertEqual(sent['Currency'], 'KZT')
+        # Description виден клиенту на форме оплаты — должно быть название букета,
+        # а не просто номер заказа.
+        self.assertIn('Букет', sent['Description'])
+        self.assertIn(f'Заказ №{order.pk}', sent['Description'])
 
     @patch('payments.gateway.requests.post')
     def test_auth_header_is_basic_public_id_and_secret(self, mock_post):
