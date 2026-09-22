@@ -337,4 +337,17 @@ def address_resolve_ajax(request):
 
 def order_success(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
+    if order.status == Order.Status.PENDING_PAYMENT and gateway.payments_enabled():
+        # Основной путь обновления статуса — webhook шлюза, но он может
+        # опоздать или не дойти (не настроен в кабинете TipTop Pay, сеть).
+        # Раз уж клиент и так смотрит на эту страницу — на всякий случай
+        # опрашиваем шлюз напрямую, чтобы не зависеть только от webhook'а.
+        payment = order.payments.order_by('-created_at').first()
+        if payment is not None:
+            try:
+                gateway.check_payment(payment, source='order_success')
+            except gateway.PaymentGatewayError:
+                logger.exception('order_success: не удалось опросить статус платежа %s', payment.invoice_id)
+            else:
+                order.refresh_from_db(fields=['status'])
     return render(request, 'main/order_success.html', {'order': order})

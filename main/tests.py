@@ -324,6 +324,72 @@ class CheckoutFlowTests(TestCase):
         self.assertRedirects(response, reverse('catalog:product_list'))
 
 
+@override_settings(
+    PAYMENTS_ENABLED=True, TIPTOP_API_BASE='https://api.example.test',
+    TIPTOP_PUBLIC_ID='pk_test', TIPTOP_API_SECRET='s3cret', PAYMENT_CURRENCY='KZT',
+)
+class OrderSuccessPaymentSyncTests(TestCase):
+    """order_success не должен вечно висеть в «Ожидаем оплату», если webhook
+    от TipTop Pay не дошёл (не настроен в кабинете, сеть и т.п.) — страница
+    сама опрашивает шлюз напрямую, пока заказ не оплачен."""
+
+    def setUp(self):
+        from payments.models import Payment
+
+        category = Category.objects.create(name='Категория')
+        product = Product.objects.create(
+            name='Букет', category=category, price=Decimal('1500'), in_stock=True,
+        )
+        self.order = Order.objects.create(
+            customer_name='Анна', customer_phone='+77070000000',
+            delivery_address='ул. Тест, 1', total_price=product.price,
+            status=Order.Status.PENDING_PAYMENT,
+        )
+        self.payment = Payment.objects.create(
+            order=self.order, amount=product.price, invoice_id='bpf-1-test',
+        )
+
+    def test_pending_order_triggers_gateway_check_on_view(self):
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('main:order_success', args=[self.order.pk]))
+        mocked.assert_called_once()
+        self.assertEqual(mocked.call_args.args[0], self.payment)
+
+    def test_gateway_check_updates_the_page_without_reload(self):
+        from payments.models import Payment
+
+        def fake_check(payment, **kwargs):
+            payment.status = Payment.Status.SUCCEEDED
+            payment.save(update_fields=['status'])
+            self.order.status = Order.Status.PAID
+            self.order.save(update_fields=['status'])
+
+        with patch('payments.gateway.check_payment', side_effect=fake_check):
+            response = self.client.get(reverse('main:order_success', args=[self.order.pk]))
+        self.assertEqual(response.context['order'].status, Order.Status.PAID)
+
+    def test_already_paid_order_does_not_call_gateway(self):
+        self.order.status = Order.Status.PAID
+        self.order.save(update_fields=['status'])
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('main:order_success', args=[self.order.pk]))
+        mocked.assert_not_called()
+
+    def test_gateway_error_does_not_break_the_page(self):
+        from payments import gateway
+
+        with patch('payments.gateway.check_payment', side_effect=gateway.PaymentGatewayError('нет ответа')):
+            response = self.client.get(reverse('main:order_success', args=[self.order.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['order'].status, Order.Status.PENDING_PAYMENT)
+
+    @override_settings(PAYMENTS_ENABLED=False, TIPTOP_PUBLIC_ID='', TIPTOP_API_SECRET='')
+    def test_disabled_payments_does_not_call_gateway(self):
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('main:order_success', args=[self.order.pk]))
+        mocked.assert_not_called()
+
+
 class DeliveryPriceTamperTests(TestCase):
     """Пробуем навязать серверу свою стоимость доставки всеми доступными способами.
 
