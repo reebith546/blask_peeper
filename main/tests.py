@@ -664,3 +664,75 @@ class AdminDashboardTests(TestCase):
         response = self.client.get(reverse('admin:index'))
         self.assertEqual(response.context['dashboard_stats'], [])
         self.assertTrue(response.context['dashboard_calm'])
+
+
+@override_settings(
+    PAYMENTS_ENABLED=True, TIPTOP_API_BASE='https://api.example.test',
+    TIPTOP_PUBLIC_ID='pk_test', TIPTOP_API_SECRET='s3cret', PAYMENT_CURRENCY='KZT',
+)
+class DashboardAutoRecheckPendingPaymentsTests(TestCase):
+    """Открытие /admin/ само подтягивает статус сегодняшних платежей в
+    «Ожидает оплаты» — так же, как ручное действие «Проверить статус
+    в платёжном шлюзе», но без захода в Платежи."""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        from payments.models import Payment
+
+        self.superuser = User.objects.create_superuser('owner', 'owner@example.com', 'pass12345')
+        category = Category.objects.create(name='Категория')
+        product = Product.objects.create(
+            name='Букет', category=category, price=Decimal('1500'), in_stock=True,
+        )
+        order = Order.objects.create(
+            customer_name='Анна', customer_phone='+77070000000',
+            delivery_address='ул. Тест, 1', total_price=product.price,
+            status=Order.Status.PENDING_PAYMENT,
+        )
+        self.payment = Payment.objects.create(
+            order=order, amount=product.price, invoice_id='bpf-1-test',
+        )
+
+    def test_visiting_admin_index_rechecks_todays_pending_payments(self):
+        self.client.force_login(self.superuser)
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('admin:index'))
+        mocked.assert_called_once()
+        self.assertEqual(mocked.call_args.args[0], self.payment)
+
+    def test_already_resolved_payment_is_not_rechecked(self):
+        from payments.models import Payment
+
+        self.payment.status = Payment.Status.SUCCEEDED
+        self.payment.save(update_fields=['status'])
+
+        self.client.force_login(self.superuser)
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('admin:index'))
+        mocked.assert_not_called()
+
+    def test_user_without_payments_permission_does_not_trigger_recheck(self):
+        from django.contrib.auth.models import User
+
+        staff = User.objects.create_user('staff', 'staff@example.com', 'pass12345', is_staff=True)
+        staff.user_permissions.clear()
+        self.client.force_login(staff)
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('admin:index'))
+        mocked.assert_not_called()
+
+    @override_settings(PAYMENTS_ENABLED=False, TIPTOP_PUBLIC_ID='', TIPTOP_API_SECRET='')
+    def test_disabled_payments_does_not_trigger_recheck(self):
+        self.client.force_login(self.superuser)
+        with patch('payments.gateway.check_payment') as mocked:
+            self.client.get(reverse('admin:index'))
+        mocked.assert_not_called()
+
+    def test_gateway_error_does_not_break_the_dashboard(self):
+        from payments import gateway
+
+        self.client.force_login(self.superuser)
+        with patch('payments.gateway.check_payment', side_effect=gateway.PaymentGatewayError('нет ответа')):
+            response = self.client.get(reverse('admin:index'))
+        self.assertEqual(response.status_code, 200)

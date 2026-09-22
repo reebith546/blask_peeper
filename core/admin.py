@@ -7,10 +7,47 @@
 работа (значение > 0). Нулевые счётчики не выводим — иначе они приучают
 не смотреть на сводку вообще. Если работы нет — явное «всё спокойно».
 """
+import logging
 import types
 
 from django.contrib import admin
 from django.urls import reverse
+
+logger = logging.getLogger('payments')
+
+# Сколько зависших платежей максимум опрашивать за один заход в админку —
+# чтобы недоступный шлюз не превратил открытие дашборда в долгое ожидание.
+_MAX_AUTO_RECHECK = 20
+
+
+def _sync_todays_pending_payments(request):
+    """Автоматически опрашивает TipTop Pay по сегодняшним платежам, которые
+    всё ещё висят в «Ожидает оплаты» — то же самое, что действие «Проверить
+    статус в платёжном шлюзе» в Платежах, но без ручного захода туда.
+    Источник правды по оплате — подписанный webhook, это лишь подстраховка
+    на случай, если он не настроен в кабинете шлюза или потерялся по сети."""
+    if not request.user.has_perm('payments.change_payment'):
+        return
+
+    from django.utils import timezone
+
+    from payments import gateway
+    from payments.models import Payment
+
+    if not gateway.payments_enabled():
+        return
+
+    today = timezone.localdate()
+    pending = (
+        Payment.objects
+        .filter(status=Payment.Status.PENDING, created_at__date=today)
+        .order_by('-created_at')[:_MAX_AUTO_RECHECK]
+    )
+    for payment in pending:
+        try:
+            gateway.check_payment(payment, source='admin_dashboard')
+        except gateway.PaymentGatewayError:
+            logger.exception('автопроверка на дашборде: не удалось опросить статус платежа %s', payment.invoice_id)
 
 
 def _dashboard_stats(request):
@@ -70,6 +107,7 @@ def _perm_for_url(url):
 
 def _index_with_stats(self, request, extra_context=None):
     extra_context = extra_context or {}
+    _sync_todays_pending_payments(request)
     stats = _dashboard_stats(request)
     extra_context['dashboard_stats'] = stats
     extra_context['dashboard_calm'] = not stats and _has_dashboard_scope(request)
