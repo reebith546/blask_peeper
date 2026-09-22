@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib import admin
+from django.db import models
 from django.utils.html import format_html
 from django.utils.text import Truncator
 
@@ -26,7 +28,7 @@ class OrderItemInline(admin.TabularInline):
         if not obj.pk or not obj.product_id or not obj.product.image:
             return '—'
         return format_html(
-            '<img src="{}" style="width:64px;height:64px;object-fit:cover;'
+            '<img src="{}" style="width:110px;height:110px;object-fit:cover;'
             'border-radius:6px;">',
             obj.product.image.url,
         )
@@ -63,6 +65,11 @@ class OrderAdmin(AuditModelAdmin, admin.ModelAdmin):
         'recipient_name', 'recipient_phone', 'delivery_address',
     )
     readonly_fields = ('created_at', 'updated_at', 'total_price')
+    # Текст открытки/комментарий — обычно пара строк, штатный Textarea
+    # (rows=10) под них слишком высокий.
+    formfield_overrides = {
+        models.TextField: {'widget': forms.Textarea(attrs={'rows': 3})},
+    }
     inlines = [OrderItemInline, PaymentInline]
     date_hierarchy = 'created_at'
     actions = ['mark_as_paid', 'mark_as_processing', 'mark_as_delivered']
