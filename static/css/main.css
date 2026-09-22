@@ -120,7 +120,7 @@ ul { list-style: none; }
   padding-bottom: 18px;
 }
 .logo { display: flex; align-items: center; }
-.logo__image { height: 40px; width: auto; }
+.logo__image { height: 52px; width: auto; }
 
 .nav {
   display: flex;
@@ -922,6 +922,7 @@ ul { list-style: none; }
   background: #fff;
 }
 .form-field textarea { resize: vertical; min-height: 90px; }
+#card-text, #comment { min-height: 56px; }
 .form-field select:disabled {
   background: var(--bg-light);
   color: var(--text-onLight-muted);
@@ -1244,7 +1245,7 @@ ul { list-style: none; }
   .site-header__inner { flex-wrap: nowrap; padding-top: 12px; padding-bottom: 12px; gap: 12px; }
   .header-icons { gap: 16px; }
   .nav a { padding-left: 20px; padding-right: 20px; }
-  .logo__image { height: 34px; }
+  .logo__image { height: 44px; }
   .hero { padding: 40px 0 60px; }
   .hero--image { min-height: 420px; padding: 64px 0; }
   .hero--image::before {
