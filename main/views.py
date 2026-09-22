@@ -15,6 +15,7 @@ from catalog.models import Category, Product
 from content.models import HomepageBlock
 from delivery.models import ShopLocation
 from delivery.services import QUOTE_NOTES, quote_delivery, suggest_addresses
+from notify import services as telegram
 from orders.models import Order, OrderItem
 from payments import gateway
 from reviews.models import Review
@@ -252,6 +253,7 @@ def checkout(request):
 
         if not gateway.payments_enabled():
             # Онлайн-оплата выключена — заказ уходит менеджеру целиком вручную.
+            telegram.notify_new_order(order)
             return redirect('main:order_success', order_id=order.pk)
 
         # Онлайн-оплата: создаём счёт и уводим клиента на форму шлюза.
@@ -279,8 +281,10 @@ def checkout(request):
                 request,
                 'Заказ принят. Оплату согласует менеджер — мы свяжемся с вами.',
             )
+            telegram.notify_new_order(order)
             return redirect('main:order_success', order_id=order.pk)
 
+        telegram.notify_new_order(order)
         return redirect(form_url)
 
     return render(request, 'main/checkout.html', context)

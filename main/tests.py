@@ -323,6 +323,30 @@ class CheckoutFlowTests(TestCase):
         response = self.client.get(reverse('main:checkout'))
         self.assertRedirects(response, reverse('catalog:product_list'))
 
+    # ---- уведомление о новом заказе в Telegram ----
+
+    def test_checkout_notifies_telegram_about_the_new_order(self):
+        from notify.models import TelegramSettings
+
+        TelegramSettings.objects.create(is_enabled=True, bot_token='t', chat_id='42')
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        with patch('main.views.telegram.notify_new_order') as mocked:
+            self._checkout()
+        order = Order.objects.get()
+        mocked.assert_called_once_with(order)
+
+    def test_checkout_does_not_fail_when_telegram_is_unreachable(self):
+        import requests
+
+        from notify.models import TelegramSettings
+
+        TelegramSettings.objects.create(is_enabled=True, bot_token='t', chat_id='42')
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        with patch('notify.services.requests.post', side_effect=requests.ConnectionError('boom')):
+            response = self._checkout()
+        order = Order.objects.get()
+        self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
+
 
 @override_settings(
     PAYMENTS_ENABLED=True, TIPTOP_API_BASE='https://api.example.test',
