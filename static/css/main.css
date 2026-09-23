@@ -1049,6 +1049,9 @@ ul { list-style: none; }
 .checkout-section { margin-bottom: 40px; }
 .checkout-section__title { font-family: var(--display); font-size: 31px; font-weight: 500; margin-bottom: 20px; }
 .checkout-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* Отступ после текста про доставку/самовывоз, перед полями даты и времени —
+   иначе текст и заголовок «Дата самовывоза»/«Дата доставки» слипаются. */
+#delivery-fields, #pickup-fields { margin-bottom: 10px; }
 
 .delivery-method { display: flex; gap: 24px; margin-bottom: 20px; }
 .delivery-method label {
