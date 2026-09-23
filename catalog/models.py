@@ -41,6 +41,13 @@ class Product(models.Model):
     name = models.CharField('Название', max_length=200)
     slug = models.SlugField('Слаг (для URL)', max_length=210, unique=True, blank=True, allow_unicode=True)
     price = models.DecimalField('Цена, ₸', max_digits=10, decimal_places=2)
+    discount_price = models.DecimalField(
+        'Цена со скидкой, ₸', max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text='Заполните, чтобы включить скидку — товар начнёт показываться по '
+                   'этой цене везде (каталог, карточка, корзина, заказ) с зачёркнутой '
+                   'обычной ценой рядом. Оставьте пустым или больше/равно обычной '
+                   'цене — скидка не действует.',
+    )
     composition = models.TextField('Состав', blank=True)
     description = models.TextField('Описание', blank=True)
     image = models.ImageField('Главное фото', upload_to='products/')
@@ -67,6 +74,22 @@ class Product(models.Model):
     def composition_lines(self):
         """Состав построчно — раньше хранился и выводился строкой через запятую."""
         return [line.strip() for line in self.composition.split(',') if line.strip()]
+
+    @property
+    def is_on_sale(self):
+        return self.discount_price is not None and self.discount_price < self.price
+
+    @property
+    def effective_price(self):
+        """Цена, по которой товар реально продаётся — с учётом скидки."""
+        return self.discount_price if self.is_on_sale else self.price
+
+    @property
+    def discount_percent(self):
+        """Скидка в процентах, округлённая до целого — для бейджа «-N%»."""
+        if not self.is_on_sale:
+            return 0
+        return round((1 - self.discount_price / self.price) * 100)
 
 
 class ProductImage(models.Model):

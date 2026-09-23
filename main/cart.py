@@ -57,8 +57,8 @@ class Cart:
             yield {
                 'product': product,
                 'quantity': quantity,
-                'price': product.price,
-                'subtotal': product.price * quantity,
+                'price': product.effective_price,
+                'subtotal': product.effective_price * quantity,
             }
 
     def __len__(self):

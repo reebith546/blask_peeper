@@ -19,7 +19,10 @@
           <img class="cart-item__image" src="{{ entry.product.image.url }}" alt="{{ entry.product.name }}">
           <div>
             <h3 class="cart-item__title">{{ entry.product.name }}</h3>
-            <span class="cart-item__price">{{ entry.price|kzt }}</span>
+            <span class="cart-item__price price-row">
+              {% if entry.product.is_on_sale %}<span class="price-old">{{ entry.product.price|kzt }}</span>{% endif %}
+              {{ entry.price|kzt }}
+            </span>
           </div>
           <div class="cart-item__qty">
             <form action="{% url 'main:cart_update' entry.product.pk %}" method="post">

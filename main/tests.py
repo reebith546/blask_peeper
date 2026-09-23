@@ -60,6 +60,18 @@ class CartTests(TestCase):
         cart.set_quantity(self.product, 0)
         self.assertEqual(len(cart), 0)
 
+    def test_discounted_product_uses_discount_price_in_cart(self):
+        sale_product = Product.objects.create(
+            name='Букет со скидкой', category=self.category,
+            price=Decimal('10000'), discount_price=Decimal('8000'), in_stock=True,
+        )
+        cart = Cart(self.request)
+        cart.add(sale_product, 2)
+        entry = next(iter(cart))
+        self.assertEqual(entry['price'], Decimal('8000'))
+        self.assertEqual(entry['subtotal'], Decimal('16000'))
+        self.assertEqual(cart.get_total_price(), Decimal('16000'))
+
 
 class CheckoutFlowTests(TestCase):
     def setUp(self):
@@ -135,6 +147,21 @@ class CheckoutFlowTests(TestCase):
         self.assertEqual(order.delivery_time, '14:00-16:00')
         self.assertRedirects(response, reverse('main:order_success', args=[order.pk]))
         self.assertContains(self.client.get(reverse('main:cart')), 'Корзина пока пуста')
+
+    @patch('main.views.quote_delivery')
+    def test_checkout_charges_discounted_price_not_original(self, quote):
+        quote.return_value = (self.zone, self.zone.price, 1.0, 'ok')
+        sale_product = Product.objects.create(
+            name='Букет со скидкой', category=self.category,
+            price=Decimal('20000'), discount_price=Decimal('15000'), in_stock=True,
+        )
+        self.client.post(reverse('main:cart_add', args=[sale_product.pk]), {'quantity': 1})
+        self._checkout()
+
+        order = Order.objects.get()
+        item = order.items.get()
+        self.assertEqual(item.price, Decimal('15000'))
+        self.assertEqual(order.total_price, Decimal('15000') + self.zone.price)
 
     @patch('main.views.quote_delivery')
     def test_checkout_stores_recipient_and_sender_separately(self, quote):

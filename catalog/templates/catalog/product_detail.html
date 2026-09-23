@@ -40,7 +40,15 @@
     <div>
       <span class="eyebrow">{{ product.category.name }}</span>
       <h1 class="product-detail__title">{{ product.name }}</h1>
-      <div class="product-detail__price">{{ product.price|kzt }}</div>
+      <div class="product-detail__price">
+        {% if product.is_on_sale %}
+          <span class="price-old">{{ product.price|kzt }}</span>
+          {{ product.effective_price|kzt }}
+          <span class="sale-badge sale-badge--inline">-{{ product.discount_percent }}%</span>
+        {% else %}
+          {{ product.price|kzt }}
+        {% endif %}
+      </div>
 
       {% if product.composition_lines %}
         <ul class="product-detail__composition">

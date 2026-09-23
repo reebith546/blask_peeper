@@ -45,6 +45,73 @@ class ProductModelTests(TestCase):
         self.assertFalse(product.in_stock)
 
 
+class ProductDiscountTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Авторские')
+
+    def test_no_discount_price_means_not_on_sale(self):
+        product = Product.objects.create(name='Букет', category=self.category, price=10000)
+        self.assertFalse(product.is_on_sale)
+        self.assertEqual(product.effective_price, 10000)
+        self.assertEqual(product.discount_percent, 0)
+
+    def test_discount_price_below_price_is_on_sale(self):
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000, discount_price=8000,
+        )
+        self.assertTrue(product.is_on_sale)
+        self.assertEqual(product.effective_price, 8000)
+        self.assertEqual(product.discount_percent, 20)
+
+    def test_discount_price_equal_to_price_is_not_on_sale(self):
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000, discount_price=10000,
+        )
+        self.assertFalse(product.is_on_sale)
+        self.assertEqual(product.effective_price, 10000)
+
+    def test_discount_price_above_price_is_not_on_sale(self):
+        # Например, цену подняли, а скидочную цену забыли поднять следом.
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000, discount_price=12000,
+        )
+        self.assertFalse(product.is_on_sale)
+        self.assertEqual(product.effective_price, 10000)
+
+
+class ProductAdminDiscountTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.superuser = User.objects.create_superuser('owner', 'owner@example.com', 'pass12345')
+        self.category = Category.objects.create(name='Авторские')
+        self.sale_product = Product.objects.create(
+            name='Со скидкой', category=self.category, price=10000, discount_price=7500,
+            image=_make_test_image(),
+        )
+        self.regular_product = Product.objects.create(
+            name='Без скидки', category=self.category, price=10000,
+            image=_make_test_image(),
+        )
+
+    def test_on_sale_filter_yes_shows_only_discounted(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:catalog_product_changelist'), {'on_sale': 'yes'})
+        shown = {p.pk for p in response.context['cl'].queryset}
+        self.assertEqual(shown, {self.sale_product.pk})
+
+    def test_on_sale_filter_no_excludes_discounted(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:catalog_product_changelist'), {'on_sale': 'no'})
+        shown = {p.pk for p in response.context['cl'].queryset}
+        self.assertEqual(shown, {self.regular_product.pk})
+
+    def test_changelist_shows_discount_badge_only_for_sale_product(self):
+        self.client.force_login(self.superuser)
+        html = self.client.get(reverse('admin:catalog_product_changelist')).content.decode()
+        self.assertIn('-25%', html)
+
+
 class ShuffleUtilTests(TestCase):
     def test_returns_new_list_without_mutating_source(self):
         source = [1, 2, 3, 4, 5]
