@@ -496,9 +496,13 @@ ul { list-style: none; }
   padding-top: 14px;
 }
 .bouquet-card__price { font-size: 20px; font-weight: 600; }
-.price-row { display: flex; align-items: baseline; gap: 8px; }
+/* Старая и новая цена — друг над другом, а не в ряд: в узкой карточке
+   (особенно в карусели «Популярное», 260px) горизontальный ряд из старой
+   цены, новой цены и кнопки «В корзину» не помещался и переносился
+   криво. Столбиком места нужно ровно столько же, сколько без скидки. */
+.price-row { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
 .price-old {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--text-onLight-muted);
   text-decoration: line-through;
@@ -507,6 +511,7 @@ ul { list-style: none; }
   font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
   background: var(--bg-dark);
   color: var(--text-onDark);
   padding: 10px 18px;
