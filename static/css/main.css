@@ -461,8 +461,8 @@ ul { list-style: none; }
   top: 12px;
   left: 12px;
   z-index: 1;
-  background: var(--bg-dark);
-  color: #fff;
+  background: #fff;
+  color: var(--bg-dark);
   font-family: var(--display);
   font-size: 14px;
   letter-spacing: 0.04em;
