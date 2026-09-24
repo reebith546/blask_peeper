@@ -505,16 +505,18 @@ ul { list-style: none; }
   text-decoration: line-through;
 }
 /* Две кнопки — «Купить в 1 клик» (в обход корзины, сразу на чекаут) и
-   «В корзину» — оборачиваются, если не помещаются в ряд (узкая карточка). */
-.bouquet-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+   «В корзину» — друг под другом на всю ширину. В ряд на карточке каталога
+   (4 колонки на десктопе) для такого длинного текста тесно даже на
+   широком экране. */
+.bouquet-card__actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .bouquet-card__buy-now-btn,
 .bouquet-card__cart-btn {
-  flex: 1 1 110px;
+  width: 100%;
   font-size: 13px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   text-align: center;
-  padding: 10px 10px;
+  padding: 12px 10px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1459,14 +1461,8 @@ ul { list-style: none; }
   .bouquets-grid .bouquet-card__composition { display: none; }
   .bouquets-grid .bouquet-card__footer { padding-top: 10px; }
   .bouquets-grid .bouquet-card__price { font-size: 21px; }
-  /* Карточка в 2 колонки — «Купить в 1 клик» и «В корзину» рядом не
-     помещаются, ставим их друг под другом. */
-  .bouquets-grid .bouquet-card__actions { flex-direction: column; }
   .bouquets-grid .bouquet-card__buy-now-btn,
-  .bouquets-grid .bouquet-card__cart-btn {
-    width: 100%;
-    padding: 11px 12px;
-  }
+  .bouquets-grid .bouquet-card__cart-btn { padding: 11px 12px; }
   .bouquets-grid .bouquet-card__out-of-stock { text-align: center; }
   .site-footer .footer-main { padding-top: 52px; padding-bottom: 40px; gap: 34px; }
   .footer-bottom .container { text-align: center; }
