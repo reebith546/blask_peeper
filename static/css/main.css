@@ -573,7 +573,7 @@ ul { list-style: none; }
   padding: 20px 24px;
   background: var(--bg-light);
   border: 1px solid rgba(26,24,23,0.1);
-  margin-bottom: 48px;
+  margin-bottom: 24px;
 }
 .catalog-filter-panel__group {
   display: flex;
@@ -616,6 +616,11 @@ ul { list-style: none; }
 
 @media (min-width: 721px) {
   .filter-toggle { display: none; }
+  /* .page-hero сам даёт ~76px снизу, обычный .section добавляет ещё
+     100px сверху — вместе 176px пустоты перед чипами категорий на
+     странице каталога. Полностью убирать нельзя (чипы упрутся в баннер),
+     но настолько много не нужно. */
+  .page-hero + .section { padding-top: 24px; }
 }
 .catalog-filters a {
   padding: 10px 22px;
@@ -630,6 +635,68 @@ ul { list-style: none; }
 .catalog-filters a.is-active {
   background: var(--bg-dark);
   border-color: var(--bg-dark);
+  color: var(--text-onDark);
+}
+
+/* Выпадающий список категорий — замена ряду чипов там, где им тесно
+   (мобилка, много категорий). Скрыт на десктопе, см. media ниже. */
+.catalog-category-dropdown { position: relative; display: none; width: 100%; }
+.catalog-category-dropdown__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(26,24,23,0.15);
+  background: #fff;
+  font-family: var(--sans);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-onLight);
+  cursor: pointer;
+}
+.catalog-category-dropdown__toggle svg {
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+.catalog-category-dropdown.is-open .catalog-category-dropdown__toggle svg { transform: rotate(180deg); }
+.catalog-category-dropdown__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid rgba(26,24,23,0.15);
+  box-shadow: 0 14px 28px rgba(20,17,16,0.12);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.18s ease, opacity 0.15s ease;
+}
+.catalog-category-dropdown.is-open .catalog-category-dropdown__list {
+  max-height: min(60vh, 360px);
+  opacity: 1;
+  overflow-y: auto;
+}
+.catalog-category-dropdown__list a {
+  display: block;
+  padding: 12px 16px;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-onLight);
+  border-bottom: 1px solid rgba(26,24,23,0.08);
+}
+.catalog-category-dropdown__list li:last-child a { border-bottom: none; }
+.catalog-category-dropdown__list a:hover,
+.catalog-category-dropdown__list a.is-active {
+  background: var(--bg-dark);
   color: var(--text-onDark);
 }
 
@@ -1375,6 +1442,8 @@ ul { list-style: none; }
   .checkout-row { grid-template-columns: 1fr; }
   .cart-item { grid-template-columns: 72px 1fr; row-gap: 14px; }
   .cart-item__qty { grid-column: 1 / -1; width: 100%; flex-wrap: wrap; }
+  .catalog-filters { display: none; }
+  .catalog-category-dropdown { display: block; }
   .catalog-filter-panel {
     display: none;
     flex-direction: column;

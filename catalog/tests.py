@@ -296,3 +296,15 @@ class CatalogOrderingTests(TestCase):
         mocked.assert_not_called()
         prices = [p.price for p in resp.context['products']]
         self.assertEqual(prices, sorted(prices))
+
+    def test_category_dropdown_lists_all_categories_and_marks_current(self):
+        # Компактный выпадающий список (мобилка) — та же информация, что
+        # и в ряду чипов (десктоп), просто другая разметка.
+        html = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.mono.slug])
+        ).content.decode()
+        self.assertIn('catalog-category-dropdown', html)
+        self.assertIn(self.authored.name, html)
+        self.assertIn(self.mono.name, html)
+        dropdown_html = html.split('catalog-category-dropdown__list')[1]
+        self.assertIn(f'is-active">{self.mono.name}', dropdown_html)

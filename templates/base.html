@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32.png' %}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
 <link rel="preload" href="{% static 'fonts/BebasNeue.woff2' %}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260924b">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
+<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20260924c">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
 {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -173,6 +173,24 @@
     toggle.addEventListener('click', function () {
       var isOpen = panel.classList.toggle('is-open');
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+  })();
+
+  // Выпадающий список категорий в каталоге (замена ряду чипов на мобильных).
+  (function () {
+    var dropdown = document.getElementById('catalog-category-dropdown');
+    var toggle = document.getElementById('catalog-category-toggle');
+    if (!dropdown || !toggle) return;
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = dropdown.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
     });
   })();
 </script>
