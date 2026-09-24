@@ -31,6 +31,10 @@ def product_list(request, category_slug=None):
             Q(category=current_category) | Q(extra_categories=current_category)
         ).distinct()
 
+    query = request.GET.get('q', '').strip()
+    if query:
+        products = products.filter(Q(name__icontains=query) | Q(composition__icontains=query))
+
     min_price = _parse_price(request.GET.get('min_price'))
     max_price = _parse_price(request.GET.get('max_price'))
     if min_price is not None:
@@ -57,6 +61,7 @@ def product_list(request, category_slug=None):
         'products': products,
         'current_category': current_category,
         'current_sort': current_sort,
+        'query': query,
         'min_price': min_price,
         'max_price': max_price,
     }

@@ -308,3 +308,51 @@ class CatalogOrderingTests(TestCase):
         self.assertIn(self.mono.name, html)
         dropdown_html = html.split('catalog-category-dropdown__list')[1]
         self.assertIn(f'is-active">{self.mono.name}', dropdown_html)
+
+
+class CatalogSearchTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Авторские')
+        self.rose = Product.objects.create(
+            name='Розовый рассвет', category=self.category, price=15000,
+            composition='Роза 15, Эвкалипт 3', in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        self.tulip = Product.objects.create(
+            name='Весенний бриз', category=self.category, price=12000,
+            composition='Тюльпан 25', in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+
+    def test_search_matches_by_name(self):
+        resp = self.client.get(reverse('catalog:product_list'), {'q': 'рассвет'})
+        self.assertEqual(list(resp.context['products']), [self.rose])
+
+    def test_search_matches_by_composition(self):
+        resp = self.client.get(reverse('catalog:product_list'), {'q': 'тюльпан'})
+        self.assertEqual(list(resp.context['products']), [self.tulip])
+
+    def test_search_is_case_insensitive(self):
+        resp = self.client.get(reverse('catalog:product_list'), {'q': 'РОЗА'})
+        self.assertEqual(list(resp.context['products']), [self.rose])
+
+    def test_search_with_no_matches_shows_empty_message(self):
+        resp = self.client.get(reverse('catalog:product_list'), {'q': 'орхидея'})
+        self.assertEqual(list(resp.context['products']), [])
+        self.assertContains(resp, 'ничего не найдено')
+
+    def test_search_combines_with_category_filter(self):
+        other = Category.objects.create(name='Монобукеты')
+        Product.objects.create(
+            name='Розовый монобукет', category=other, price=9000,
+            composition='Роза 21', in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        resp = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.category.slug]), {'q': 'роза'},
+        )
+        self.assertEqual(list(resp.context['products']), [self.rose])
+
+    def test_search_box_keeps_the_typed_query(self):
+        html = self.client.get(reverse('catalog:product_list'), {'q': 'рассвет'}).content.decode()
+        self.assertIn('value="рассвет"', html)
