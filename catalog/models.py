@@ -38,6 +38,12 @@ class Product(models.Model):
         Category, verbose_name='Категория', related_name='products',
         on_delete=models.PROTECT,
     )
+    extra_categories = models.ManyToManyField(
+        Category, verbose_name='Дополнительные категории', related_name='extra_products',
+        blank=True,
+        help_text='Товар дополнительно покажется и в этих категориях — '
+                  'основная категория (поле выше) не дублируется, указывать её здесь не нужно.',
+    )
     name = models.CharField('Название', max_length=200)
     slug = models.SlugField('Слаг (для URL)', max_length=210, unique=True, blank=True, allow_unicode=True)
     price = models.DecimalField('Цена, ₸', max_digits=10, decimal_places=2)
@@ -48,7 +54,11 @@ class Product(models.Model):
                    'обычной ценой рядом. Оставьте пустым или больше/равно обычной '
                    'цене — скидка не действует.',
     )
-    composition = models.TextField('Состав', blank=True)
+    composition = models.TextField(
+        'Состав', blank=True,
+        help_text='Через запятую в одну строку («Роза 1, Пионы 2, Хризантемы 5») '
+                  'или по одному цветку на строке — оба формата работают одинаково.',
+    )
     description = models.TextField('Описание', blank=True)
     image = models.ImageField('Главное фото', upload_to='products/')
     in_stock = models.BooleanField('В наличии', default=True)
@@ -72,8 +82,27 @@ class Product(models.Model):
 
     @property
     def composition_lines(self):
-        """Состав построчно — раньше хранился и выводился строкой через запятую."""
-        return [line.strip() for line in self.composition.split(',') if line.strip()]
+        """Состав построчно. Можно писать в одну строку через запятую
+        («Роза 1, Пионы 2, Хризантемы 5») или по одному цветку на отдельной
+        строке (каждая строка — «Роза 1», «Пионы 2» и т.д.) — формат
+        определяется автоматически по наличию переноса строки."""
+        text = self.composition.strip()
+        if not text:
+            return []
+        if '\n' in text:
+            return [line.strip() for line in text.splitlines() if line.strip()]
+        return [line.strip() for line in text.split(',') if line.strip()]
+
+    @property
+    def all_categories(self):
+        """Основная категория + дополнительные — одним списком, без дублей."""
+        seen = {self.category_id}
+        result = [self.category]
+        for extra in self.extra_categories.all():
+            if extra.pk not in seen:
+                seen.add(extra.pk)
+                result.append(extra)
+        return result
 
     @property
     def is_on_sale(self):

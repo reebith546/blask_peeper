@@ -45,6 +45,110 @@ class ProductModelTests(TestCase):
         self.assertFalse(product.in_stock)
 
 
+class ProductCompositionTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Авторские')
+
+    def test_empty_composition_is_empty_list(self):
+        product = Product.objects.create(name='Букет', category=self.category, price=10000)
+        self.assertEqual(product.composition_lines, [])
+
+    def test_comma_separated_single_line(self):
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000,
+            composition='Роза 1, Пионы 2, Хризантемы 5',
+        )
+        self.assertEqual(product.composition_lines, ['Роза 1', 'Пионы 2', 'Хризантемы 5'])
+
+    def test_one_flower_per_line(self):
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000,
+            composition='Роза 1\nПионы 2\nХризантемы 5',
+        )
+        self.assertEqual(product.composition_lines, ['Роза 1', 'Пионы 2', 'Хризантемы 5'])
+
+    def test_multiline_ignores_blank_lines(self):
+        product = Product.objects.create(
+            name='Букет', category=self.category, price=10000,
+            composition='Роза 1\n\n  Пионы 2  \n',
+        )
+        self.assertEqual(product.composition_lines, ['Роза 1', 'Пионы 2'])
+
+
+class ProductMultiCategoryTests(TestCase):
+    def setUp(self):
+        self.primary = Category.objects.create(name='Авторские')
+        self.extra = Category.objects.create(name='Монобукеты')
+        self.other = Category.objects.create(name='Свадебные')
+
+    def test_all_categories_includes_primary_and_extra(self):
+        product = Product.objects.create(name='Букет', category=self.primary, price=10000)
+        product.extra_categories.add(self.extra)
+        self.assertEqual(product.all_categories, [self.primary, self.extra])
+
+    def test_all_categories_without_extra_is_just_primary(self):
+        product = Product.objects.create(name='Букет', category=self.primary, price=10000)
+        self.assertEqual(product.all_categories, [self.primary])
+
+    def test_all_categories_deduplicates_primary_added_as_extra_too(self):
+        product = Product.objects.create(name='Букет', category=self.primary, price=10000)
+        product.extra_categories.add(self.primary, self.extra)
+        self.assertEqual(product.all_categories, [self.primary, self.extra])
+
+    def test_category_page_shows_product_via_primary_category(self):
+        product = Product.objects.create(
+            name='Букет', category=self.primary, price=10000, in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        resp = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.primary.slug])
+        )
+        self.assertIn(product, resp.context['products'])
+
+    def test_category_page_shows_product_via_extra_category(self):
+        product = Product.objects.create(
+            name='Букет', category=self.primary, price=10000, in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        product.extra_categories.add(self.extra)
+        resp = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.extra.slug])
+        )
+        self.assertIn(product, resp.context['products'])
+
+    def test_category_page_does_not_show_unrelated_product(self):
+        product = Product.objects.create(
+            name='Букет', category=self.primary, price=10000, in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        resp = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.other.slug])
+        )
+        self.assertNotIn(product, resp.context['products'])
+
+    def test_product_in_two_categories_appears_only_once_per_page(self):
+        product = Product.objects.create(
+            name='Букет', category=self.primary, price=10000, in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        product.extra_categories.add(self.extra)
+        resp = self.client.get(
+            reverse('catalog:product_list_by_category', args=[self.primary.slug])
+        )
+        shown = list(resp.context['products'])
+        self.assertEqual(shown.count(product), 1)
+
+    def test_product_detail_page_shows_all_category_names(self):
+        product = Product.objects.create(
+            name='Дикий сад', category=self.primary, price=10000, in_stock=True, is_active=True,
+            image=_make_test_image(),
+        )
+        product.extra_categories.add(self.extra)
+        html = self.client.get(reverse('catalog:product_detail', args=[product.slug])).content.decode()
+        self.assertIn(self.primary.name, html)
+        self.assertIn(self.extra.name, html)
+
+
 class ProductDiscountTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(name='Авторские')

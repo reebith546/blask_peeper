@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 
 from .models import Category, Product
@@ -25,7 +26,10 @@ def product_list(request, category_slug=None):
     current_category = None
     if category_slug:
         current_category = get_object_or_404(Category, slug=category_slug, is_active=True)
-        products = products.filter(category=current_category)
+        # Товар попадает в категорию и как в основную, и как в дополнительную.
+        products = products.filter(
+            Q(category=current_category) | Q(extra_categories=current_category)
+        ).distinct()
 
     min_price = _parse_price(request.GET.get('min_price'))
     max_price = _parse_price(request.GET.get('max_price'))
@@ -61,7 +65,7 @@ def product_list(request, category_slug=None):
 
 def product_detail(request, slug):
     product = get_object_or_404(
-        Product.objects.select_related('category').prefetch_related('gallery'),
+        Product.objects.select_related('category').prefetch_related('gallery', 'extra_categories'),
         slug=slug, is_active=True, in_stock=True,
     )
     return render(request, 'catalog/product_detail.html', {'product': product})

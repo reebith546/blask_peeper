@@ -50,9 +50,10 @@ class ProductAdmin(AuditModelAdmin, admin.ModelAdmin):
         'in_stock', 'is_popular', 'is_active',
     )
     list_editable = ('price', 'discount_price', 'in_stock', 'is_popular', 'is_active')
-    list_filter = ('category', OnSaleFilter, 'is_popular', 'is_active')
+    list_filter = ('category', 'extra_categories', OnSaleFilter, 'is_popular', 'is_active')
     search_fields = ('name', 'composition')
     prepopulated_fields = {'slug': ('name',)}
+    filter_horizontal = ('extra_categories',)
     inlines = [ProductImageInline]
 
     @admin.display(description='Фото')

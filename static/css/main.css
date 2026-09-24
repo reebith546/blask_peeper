@@ -817,10 +817,15 @@ ul { list-style: none; }
   grid-template-columns: 52% 48%;
   gap: 64px;
 }
-/* Слайдер фото товара */
+/* Слайдер фото товара. На десктопе высота привязана к вьюпорту (60vh) —
+   иначе на невысоких/маленьких экранах картинка (аспект 4:5 от полной
+   ширины колонки) не помещалась и обрезала остальной контент. На мобилке
+   колонка на всю ширину экрана — там аспект-ратио выглядит естественнее. */
 .product-slider__stage {
   position: relative;
-  aspect-ratio: 4/5;
+  height: 60vh;
+  min-height: 360px;
+  max-height: 720px;
   overflow: hidden;
   background: #eee;
 }
@@ -1294,6 +1299,7 @@ ul { list-style: none; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 44px; }
   #categories, #advantages, #footer { scroll-margin-top: 80px; }
+  .product-slider__stage { height: auto; min-height: 0; max-height: none; aspect-ratio: 4/5; }
   .hero { padding: 40px 0 60px; }
   .hero--image { min-height: 420px; padding: 64px 0; }
   .hero--image::before {

@@ -38,7 +38,7 @@
     {% endwith %}
 
     <div>
-      <span class="eyebrow">{{ product.category.name }}</span>
+      <span class="eyebrow">{{ product.all_categories|join:" · " }}</span>
       <h1 class="product-detail__title">{{ product.name }}</h1>
       <div class="product-detail__price">
         {% if product.is_on_sale %}
