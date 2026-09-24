@@ -817,22 +817,27 @@ ul { list-style: none; }
   grid-template-columns: 52% 48%;
   gap: 64px;
 }
-/* Слайдер фото товара. На десктопе высота привязана к вьюпорту (60vh) —
-   иначе на невысоких/маленьких экранах картинка (аспект 4:5 от полной
-   ширины колонки) не помещалась и обрезала остальной контент. На мобилке
-   колонка на всю ширину экрана — там аспект-ратио выглядит естественнее. */
+/* min-width:0 обязателен на грид-элементе: у .product-slider__thumbs
+   overflow-x:auto (скролл миниатюр), но без этого браузер по умолчанию
+   не даёт грид-ячейке сжаться меньше суммарной ширины миниатюр — весь
+   слайдер (и вместе с ним страница) вылезал за пределы экрана вбок. */
+.product-slider { min-width: 0; }
+/* Слайдер фото товара — аспект-ratio 4:5 как раньше, но с потолком по
+   высоте (60vh), чтобы на невысоких экранах картинка не разрасталась и
+   не обрезала остальной контент. object-fit:contain — фото не кадрируется:
+   если пропорции реального фото отличаются от 4:5, по бокам/сверху-снизу
+   просто остаётся немного фона, зато видно кадр целиком. */
 .product-slider__stage {
   position: relative;
-  height: 60vh;
-  min-height: 360px;
-  max-height: 720px;
+  aspect-ratio: 4/5;
+  max-height: 60vh;
   overflow: hidden;
   background: #eee;
 }
 .product-slider__main {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .product-slider__nav {
@@ -1299,7 +1304,7 @@ ul { list-style: none; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 44px; }
   #categories, #advantages, #footer { scroll-margin-top: 80px; }
-  .product-slider__stage { height: auto; min-height: 0; max-height: none; aspect-ratio: 4/5; }
+  .product-slider__stage { max-height: none; }
   .hero { padding: 40px 0 60px; }
   .hero--image { min-height: 420px; padding: 64px 0; }
   .hero--image::before {
