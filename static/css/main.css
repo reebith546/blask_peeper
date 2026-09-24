@@ -924,7 +924,11 @@ ul { list-style: none; }
 .product-detail { padding: 72px 0 100px; }
 .product-detail__grid {
   display: grid;
-  grid-template-columns: 52% 48%;
+  /* Колонка с фото не растягивается шире 560px, даже на очень широком
+     мониторе — раньше она была 52% контейнера, и на широких экранах
+     фото (аспект-ratio 4:5 + потолок по высоте) превращалось в
+     неадекватно широкий, почти квадратный кадр. */
+  grid-template-columns: minmax(0, 560px) 1fr;
   gap: 64px;
 }
 /* min-width:0 обязателен на грид-элементе: у .product-slider__thumbs
