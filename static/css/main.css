@@ -489,9 +489,6 @@ ul { list-style: none; }
 }
 .bouquet-card__composition li { line-height: 1.6; }
 .bouquet-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-top: auto;
   padding-top: 14px;
 }
@@ -507,20 +504,35 @@ ul { list-style: none; }
   color: var(--text-onLight-muted);
   text-decoration: line-through;
 }
+/* Две кнопки — «Купить в 1 клик» (в обход корзины, сразу на чекаут) и
+   «В корзину» — оборачиваются, если не помещаются в ряд (узкая карточка). */
+.bouquet-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.bouquet-card__buy-now-btn,
 .bouquet-card__cart-btn {
-  font-size: 14px;
-  letter-spacing: 0.05em;
+  flex: 1 1 110px;
+  font-size: 13px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  white-space: nowrap;
+  text-align: center;
+  padding: 10px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.bouquet-card__buy-now-btn {
   background: var(--bg-dark);
   color: var(--text-onDark);
-  padding: 10px 18px;
-  cursor: pointer;
-  border: none;
-  transition: background 0.3s ease;
+  border: 1px solid var(--bg-dark);
 }
-.bouquet-card__cart-btn:hover { background: #fff; color: var(--bg-dark); }
+.bouquet-card__buy-now-btn:hover { background: #fff; color: var(--bg-dark); }
+.bouquet-card__cart-btn {
+  background: transparent;
+  color: var(--text-onLight);
+  border: 1px solid rgba(26,24,23,0.2);
+}
+.bouquet-card__cart-btn:hover { background: var(--bg-dark); color: var(--text-onDark); border-color: var(--bg-dark); }
 .bouquet-card__out-of-stock {
+  display: block;
+  margin-top: 12px;
   font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1012,7 +1024,7 @@ ul { list-style: none; }
 .product-detail__stock { font-size: 16px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 24px; }
 .product-detail__stock--in { color: #4a7c4a; }
 .product-detail__stock--out { color: #b34848; }
-.product-detail__actions { display: flex; gap: 16px; align-items: center; }
+.product-detail__actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .qty-input {
   width: 90px;
   padding: 16px;
@@ -1445,17 +1457,15 @@ ul { list-style: none; }
   .bouquets-grid .bouquet-card__body { padding: 12px 12px 14px; }
   .bouquets-grid .bouquet-card__title { font-size: 21px; margin-bottom: 6px; }
   .bouquets-grid .bouquet-card__composition { display: none; }
-  .bouquets-grid .bouquet-card__footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding-top: 10px;
-  }
+  .bouquets-grid .bouquet-card__footer { padding-top: 10px; }
   .bouquets-grid .bouquet-card__price { font-size: 21px; }
+  /* Карточка в 2 колонки — «Купить в 1 клик» и «В корзину» рядом не
+     помещаются, ставим их друг под другом. */
+  .bouquets-grid .bouquet-card__actions { flex-direction: column; }
+  .bouquets-grid .bouquet-card__buy-now-btn,
   .bouquets-grid .bouquet-card__cart-btn {
     width: 100%;
     padding: 11px 12px;
-    text-align: center;
   }
   .bouquets-grid .bouquet-card__out-of-stock { text-align: center; }
   .site-footer .footer-main { padding-top: 52px; padding-bottom: 40px; gap: 34px; }

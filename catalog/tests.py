@@ -356,3 +356,38 @@ class CatalogSearchTests(TestCase):
     def test_search_box_keeps_the_typed_query(self):
         html = self.client.get(reverse('catalog:product_list'), {'q': 'рассвет'}).content.decode()
         self.assertIn('value="рассвет"', html)
+
+
+class BuyNowButtonTests(TestCase):
+    """«Купить в 1 клик» — вторая кнопка рядом с «В корзину», ведёт сразу
+    на чекаут (main:cart_add с next=чекаут), минуя страницу корзины."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name='Авторские')
+        self.product = Product.objects.create(
+            name='Дикий сад', category=self.category, price=21500,
+            in_stock=True, is_active=True, image=_make_test_image(),
+        )
+
+    def test_catalog_card_has_both_buttons(self):
+        html = self.client.get(reverse('catalog:product_list')).content.decode()
+        self.assertIn('Купить в 1 клик', html)
+        self.assertIn(f'value="{reverse("main:checkout")}"', html)
+
+    def test_out_of_stock_card_has_no_buttons(self):
+        # Каталог сам отфильтровывает in_stock=False, так что рендерим
+        # фрагмент карточки напрямую — эта ветка на будущее, на случай
+        # других мест, где карточка используется без такого фильтра.
+        from django.template.loader import render_to_string
+
+        self.product.in_stock = False
+        html = render_to_string('catalog/includes/product_card.html', {'product': self.product})
+        self.assertNotIn('Купить в 1 клик', html)
+        self.assertIn('Нет в наличии', html)
+
+    def test_product_detail_page_has_both_buttons(self):
+        html = self.client.get(
+            reverse('catalog:product_detail', args=[self.product.slug])
+        ).content.decode()
+        self.assertIn('Купить в 1 клик', html)
+        self.assertIn('В корзину', html)

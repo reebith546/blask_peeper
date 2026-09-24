@@ -93,6 +93,21 @@ class CheckoutFlowTests(TestCase):
         self.assertContains(response, self.product.name)
         self.assertContains(response, '37 000')
 
+    def test_add_to_cart_without_next_redirects_to_cart(self):
+        response = self.client.post(reverse('main:cart_add', args=[self.product.pk]), {'quantity': 1})
+        self.assertRedirects(response, reverse('main:cart'))
+
+    def test_buy_now_adds_to_cart_and_skips_straight_to_checkout(self):
+        # «Купить в 1 клик» — та же ручка добавления в корзину, только
+        # next ведёт сразу на чекаут, минуя страницу корзины.
+        response = self.client.post(
+            reverse('main:cart_add', args=[self.product.pk]),
+            {'quantity': 1, 'next': reverse('main:checkout')},
+        )
+        self.assertRedirects(response, reverse('main:checkout'))
+        # Товар реально добавлен в корзину, а не просто пропущен мимо неё.
+        self.assertContains(self.client.get(reverse('main:cart')), self.product.name)
+
     def test_checkout_redirects_to_catalog_when_cart_empty(self):
         response = self.client.get(reverse('main:checkout'))
         self.assertRedirects(response, reverse('catalog:product_list'))

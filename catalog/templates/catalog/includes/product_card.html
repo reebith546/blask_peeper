@@ -21,15 +21,15 @@
         {% if product.is_on_sale %}<span class="price-old">{{ product.price|kzt }}</span>{% endif %}
         {{ product.effective_price|kzt }}
       </span>
-      {% if product.in_stock %}
-        <form action="{% url 'main:cart_add' product.pk %}" method="post">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.path }}">
-          <button class="bouquet-card__cart-btn" type="submit">В корзину</button>
-        </form>
-      {% else %}
-        <span class="bouquet-card__out-of-stock">Нет в наличии</span>
-      {% endif %}
     </div>
+    {% if product.in_stock %}
+      <form class="bouquet-card__actions" action="{% url 'main:cart_add' product.pk %}" method="post">
+        {% csrf_token %}
+        <button class="bouquet-card__buy-now-btn" type="submit" name="next" value="{% url 'main:checkout' %}">Купить в 1 клик</button>
+        <button class="bouquet-card__cart-btn" type="submit" name="next" value="{{ request.path }}">В корзину</button>
+      </form>
+    {% else %}
+      <span class="bouquet-card__out-of-stock">Нет в наличии</span>
+    {% endif %}
   </div>
 </div>
