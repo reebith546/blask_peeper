@@ -80,7 +80,7 @@ def home(request):
         # Все популярные товары — в карусель «Популярные сборки» (листается скроллом).
         'popular_products': (
             Product.objects
-            .filter(is_popular=True, is_active=True, in_stock=True)
+            .filter(is_popular=True, is_active=True)
             .select_related('category')
             .order_by('-created_at')
         ),

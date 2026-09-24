@@ -45,6 +45,51 @@ class ProductModelTests(TestCase):
         self.assertFalse(product.in_stock)
 
 
+class ProductVisibilityTests(TestCase):
+    """«Активен (виден в каталоге)» — единственная галочка видимости на
+    сайте. Нет остатка (in_stock=False) не прячет товар, только убирает
+    кнопки покупки и показывает «Нет в наличии»."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name='Авторские')
+
+    def test_out_of_stock_but_active_product_appears_in_catalog(self):
+        product = Product.objects.create(
+            name='Нет в наличии', category=self.category, price=15000,
+            in_stock=False, is_active=True, image=_make_test_image(),
+        )
+        resp = self.client.get(reverse('catalog:product_list'))
+        self.assertIn(product, resp.context['products'])
+
+    def test_out_of_stock_but_active_product_page_is_reachable(self):
+        product = Product.objects.create(
+            name='Нет в наличии', category=self.category, price=15000,
+            in_stock=False, is_active=True, image=_make_test_image(),
+        )
+        resp = self.client.get(reverse('catalog:product_detail', args=[product.slug]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Нет в наличии')
+
+    def test_inactive_product_is_hidden_regardless_of_stock(self):
+        product = Product.objects.create(
+            name='Скрытый', category=self.category, price=15000,
+            in_stock=True, is_active=False, image=_make_test_image(),
+        )
+        resp = self.client.get(reverse('catalog:product_list'))
+        self.assertNotIn(product, resp.context['products'])
+        self.assertEqual(
+            self.client.get(reverse('catalog:product_detail', args=[product.slug])).status_code, 404,
+        )
+
+    def test_cannot_add_out_of_stock_product_to_cart(self):
+        product = Product.objects.create(
+            name='Нет в наличии', category=self.category, price=15000,
+            in_stock=False, is_active=True, image=_make_test_image(),
+        )
+        response = self.client.post(reverse('main:cart_add', args=[product.pk]), {'quantity': 1})
+        self.assertEqual(response.status_code, 404)
+
+
 class ProductCompositionTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(name='Авторские')
@@ -375,13 +420,11 @@ class BuyNowButtonTests(TestCase):
         self.assertIn(f'value="{reverse("main:checkout")}"', html)
 
     def test_out_of_stock_card_has_no_buttons(self):
-        # Каталог сам отфильтровывает in_stock=False, так что рендерим
-        # фрагмент карточки напрямую — эта ветка на будущее, на случай
-        # других мест, где карточка используется без такого фильтра.
-        from django.template.loader import render_to_string
-
+        # Товар без остатка, но активный («Активен» — показывать на сайте),
+        # всё равно виден в каталоге — просто без кнопок покупки.
         self.product.in_stock = False
-        html = render_to_string('catalog/includes/product_card.html', {'product': self.product})
+        self.product.save(update_fields=['in_stock'])
+        html = self.client.get(reverse('catalog:product_list')).content.decode()
         self.assertNotIn('Купить в 1 клик', html)
         self.assertIn('Нет в наличии', html)
 

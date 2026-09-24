@@ -21,7 +21,9 @@ def _parse_price(value):
 
 def product_list(request, category_slug=None):
     categories = Category.objects.filter(is_active=True).order_by('order')
-    products = Product.objects.filter(is_active=True, in_stock=True).select_related('category')
+    # in_stock не фильтруем — «Активен» (показывать на сайте) это отдельная
+    # галочка, товара без остатка просто виден с пометкой «Нет в наличии».
+    products = Product.objects.filter(is_active=True).select_related('category')
 
     current_category = None
     if category_slug:
@@ -71,6 +73,6 @@ def product_list(request, category_slug=None):
 def product_detail(request, slug):
     product = get_object_or_404(
         Product.objects.select_related('category').prefetch_related('gallery', 'extra_categories'),
-        slug=slug, is_active=True, in_stock=True,
+        slug=slug, is_active=True,
     )
     return render(request, 'catalog/product_detail.html', {'product': product})

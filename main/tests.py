@@ -617,11 +617,19 @@ class PageSmokeTests(TestCase):
                 name=f'Популярный {i}', category=category, price=1000,
                 in_stock=True, is_active=True, is_popular=True, image=_make_test_image(),
             ))
-        # непопулярный / не в наличии — в карусель не попадают
+        # Нет в наличии, но активен (показывать на сайте) — всё равно
+        # виден, просто с пометкой «Нет в наличии»; «Активен» — это
+        # единственная галочка видимости на сайте, in_stock ей не указ.
+        made.append(Product.objects.create(
+            name='Нет в наличии', category=category, price=1000,
+            in_stock=False, is_active=True, is_popular=True, image=_make_test_image(),
+        ))
+        # непопулярный — в карусель не попадает
         Product.objects.create(name='Обычный', category=category, price=1000,
                                in_stock=True, is_popular=False, image=_make_test_image())
-        Product.objects.create(name='Нет в наличии', category=category, price=1000,
-                               in_stock=False, is_popular=True, image=_make_test_image())
+        # неактивный (скрыт с сайта) — не попадает, даже если популярен
+        Product.objects.create(name='Скрытый', category=category, price=1000,
+                               in_stock=True, is_active=False, is_popular=True, image=_make_test_image())
 
         response = self.client.get(reverse('main:home'))
         shown = list(response.context['popular_products'])
