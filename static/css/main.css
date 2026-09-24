@@ -918,10 +918,16 @@ ul { list-style: none; }
    не даёт грид-ячейке сжаться меньше суммарной ширины миниатюр — весь
    слайдер (и вместе с ним страница) вылезал за пределы экрана вбок. */
 .product-slider { min-width: 0; }
-/* Слайдер фото товара. */
+/* Слайдер фото товара — аспект-ratio 4:5, но с потолком по высоте
+   (65vh), чтобы на широких мониторах и невысоких окнах картинка не
+   разрасталась выше экрана. width:100% обязателен: без него браузер,
+   когда max-height реально ограничивает высоту, считает ширину ОТ
+   урезанной высоты (не от колонки грида) — блок сжимался у́же колонки. */
 .product-slider__stage {
   position: relative;
+  width: 100%;
   aspect-ratio: 4/5;
+  max-height: 65vh;
   overflow: hidden;
   background: #eee;
 }
@@ -1395,6 +1401,7 @@ ul { list-style: none; }
   .nav a { padding-left: 20px; padding-right: 20px; }
   .logo__image { height: 44px; }
   #categories, #advantages, #footer { scroll-margin-top: 80px; }
+  .product-slider__stage { max-height: none; }
   .hero { padding: 40px 0 60px; }
   .hero--image { min-height: 420px; padding: 64px 0; }
   .hero--image::before {
