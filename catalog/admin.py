@@ -1,5 +1,9 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import F, Q
+from django.shortcuts import redirect, render
+from django.urls import path
 from django.utils.html import format_html
 
 from audit.admin_mixins import AuditModelAdmin
@@ -57,6 +61,41 @@ class ProductAdmin(AuditModelAdmin, admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     filter_horizontal = ('extra_categories',)
     inlines = [ProductImageInline]
+    change_list_template = 'admin/catalog/product/change_list.html'
+
+    def get_urls(self):
+        custom = [
+            path(
+                'popular-order/',
+                self.admin_site.admin_view(self.popular_order_view),
+                name='catalog_product_popular_order',
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def popular_order_view(self, request):
+        """Перетаскиванием расставляем порядок «Популярных сборок» на главной."""
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        products = (
+            Product.objects.filter(is_popular=True, is_active=True)
+            .order_by(F('popular_order').asc(nulls_last=True), '-created_at')
+        )
+        if request.method == 'POST':
+            valid_ids = {str(pk) for pk in products.values_list('pk', flat=True)}
+            ids = [i for i in request.POST.getlist('order') if i in valid_ids]
+            with transaction.atomic():
+                for position, pk in enumerate(ids, start=1):
+                    Product.objects.filter(pk=pk).update(popular_order=position)
+            messages.success(request, 'Порядок «Популярных сборок» сохранён.')
+            return redirect('admin:catalog_product_popular_order')
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Порядок популярных сборок',
+            'opts': self.model._meta,
+            'products': products,
+        }
+        return render(request, 'admin/catalog/product/popular_order.html', context)
 
     @admin.display(description='Фото')
     def thumbnail(self, obj):

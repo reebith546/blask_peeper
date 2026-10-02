@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Начало</a> &rsaquo;
+  <a href="{% url 'admin:catalog_product_changelist' %}">Товары</a> &rsaquo;
+  Порядок популярных сборок
+</div>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  .po-hint { margin: 0 0 18px; color: var(--body-quiet-color); }
+  .po-list { list-style: none; margin: 0; padding: 0; max-width: 640px; }
+  .po-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 14px; margin-bottom: 8px;
+    background: var(--primary); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px; cursor: grab; user-select: none;
+  }
+  .po-item.is-dragging { opacity: 0.4; }
+  .po-item.is-over { border-color: var(--accent); }
+  .po-handle { color: var(--body-quiet-color); font-size: 18px; line-height: 1; }
+  .po-num { min-width: 26px; text-align: center; font-weight: 600; color: var(--accent); }
+  .po-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 4px; background: #2a2622; }
+  .po-name { flex: 1; font-size: 15px; }
+  .po-move { display: flex; flex-direction: column; gap: 2px; }
+  .po-move button {
+    padding: 0 8px; line-height: 1.2; cursor: pointer;
+    background: transparent; color: var(--body-quiet-color);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 3px;
+  }
+  .po-move button:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% if products %}
+  <p class="po-hint">Перетащите карточки мышкой (или стрелками справа), затем нажмите «Сохранить порядок». Сверху — первым на главной.</p>
+  <form method="post" id="po-form">
+    {% csrf_token %}
+    <ul class="po-list" id="po-list">
+      {% for product in products %}
+      <li class="po-item" draggable="true">
+        <input type="hidden" name="order" value="{{ product.pk }}">
+        <span class="po-handle">⋮⋮</span>
+        <span class="po-num"></span>
+        {% if product.image %}<img class="po-thumb" src="{{ product.image.url }}" alt="">{% endif %}
+        <span class="po-name">{{ product.name }}</span>
+        <span class="po-move">
+          <button type="button" data-dir="-1" aria-label="Выше">▲</button>
+          <button type="button" data-dir="1" aria-label="Ниже">▼</button>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="submit-row" style="max-width: 640px;">
+      <input type="submit" value="Сохранить порядок" class="default">
+    </div>
+  </form>
+  {% else %}
+  <p class="po-hint">Нет товаров с галочками «Популярное» и «Активен». Отметьте их в списке товаров — они появятся здесь.</p>
+  {% endif %}
+</div>
+
+<script>
+  (function () {
+    var list = document.getElementById('po-list');
+    if (!list) return;
+    var dragged = null;
+
+    function renumber() {
+      [].forEach.call(list.children, function (li, i) {
+        li.querySelector('.po-num').textContent = i + 1;
+      });
+    }
+    renumber();
+
+    list.addEventListener('dragstart', function (e) {
+      dragged = e.target.closest('.po-item');
+      if (!dragged) return;
+      dragged.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+    });
+    list.addEventListener('dragover', function (e) {
+      if (!dragged) return;
+      e.preventDefault();
+      var over = e.target.closest('.po-item');
+      [].forEach.call(list.children, function (li) { li.classList.remove('is-over'); });
+      if (!over || over === dragged) return;
+      over.classList.add('is-over');
+      var rect = over.getBoundingClientRect();
+      var after = e.clientY > rect.top + rect.height / 2;
+      list.insertBefore(dragged, after ? over.nextSibling : over);
+      renumber();
+    });
+    list.addEventListener('dragend', function () {
+      if (dragged) dragged.classList.remove('is-dragging');
+      [].forEach.call(list.children, function (li) { li.classList.remove('is-over'); });
+      dragged = null;
+      renumber();
+    });
+
+    list.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-dir]');
+      if (!btn) return;
+      var li = btn.closest('.po-item');
+      if (btn.dataset.dir === '-1' && li.previousElementSibling) {
+        list.insertBefore(li, li.previousElementSibling);
+      } else if (btn.dataset.dir === '1' && li.nextElementSibling) {
+        list.insertBefore(li.nextElementSibling, li);
+      }
+      renumber();
+    });
+  })();
+</script>
+{% endblock %}

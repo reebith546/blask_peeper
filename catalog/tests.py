@@ -261,6 +261,57 @@ class ProductAdminDiscountTests(TestCase):
         self.assertIn('-25%', html)
 
 
+class PopularOrderAdminTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.superuser = User.objects.create_superuser('owner', 'owner@example.com', 'pass12345')
+        self.category = Category.objects.create(name='Авторские')
+
+    def _make(self, name, **kw):
+        return Product.objects.create(
+            name=name, category=self.category, price=1000, image=_make_test_image(), **kw,
+        )
+
+    def test_page_lists_only_popular_active_products_in_homepage_order(self):
+        second = self._make('Второй', is_popular=True, popular_order=2)
+        first = self._make('Первый', is_popular=True, popular_order=1)
+        self._make('Не популярный', is_popular=False)
+        self._make('Скрытый', is_popular=True, is_active=False)
+        self.client.force_login(self.superuser)
+        resp = self.client.get(reverse('admin:catalog_product_popular_order'))
+        self.assertEqual(list(resp.context['products']), [first, second])
+
+    def test_post_saves_dragged_order(self):
+        a = self._make('A', is_popular=True)
+        b = self._make('B', is_popular=True)
+        c = self._make('C', is_popular=True)
+        self.client.force_login(self.superuser)
+        self.client.post(
+            reverse('admin:catalog_product_popular_order'), {'order': [c.pk, a.pk, b.pk]},
+        )
+        for product, expected in ((c, 1), (a, 2), (b, 3)):
+            product.refresh_from_db()
+            self.assertEqual(product.popular_order, expected)
+
+    def test_post_ignores_products_that_are_not_popular(self):
+        popular = self._make('P', is_popular=True)
+        other = self._make('O', is_popular=False)
+        self.client.force_login(self.superuser)
+        self.client.post(
+            reverse('admin:catalog_product_popular_order'), {'order': [other.pk, popular.pk]},
+        )
+        other.refresh_from_db()
+        popular.refresh_from_db()
+        self.assertIsNone(other.popular_order)
+        self.assertEqual(popular.popular_order, 1)
+
+    def test_changelist_links_to_the_page(self):
+        self.client.force_login(self.superuser)
+        html = self.client.get(reverse('admin:catalog_product_changelist')).content.decode()
+        self.assertIn(reverse('admin:catalog_product_popular_order'), html)
+
+
 class ShuffleUtilTests(TestCase):
     def test_returns_new_list_without_mutating_source(self):
         source = [1, 2, 3, 4, 5]
