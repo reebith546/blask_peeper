@@ -20,6 +20,14 @@ def about(request):
     return render(request, 'main/about.html')
 
 
+def offer(request):
+    return render(request, 'main/offer.html')
+
+
+def privacy_policy(request):
+    return render(request, 'main/privacy_policy.html')
+
+
 def home(request):
     context = {
         'hero_block': (

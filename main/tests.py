@@ -181,6 +181,10 @@ class PageSmokeTests(TestCase):
     def test_about_page_loads(self):
         self.assertEqual(self.client.get(reverse('main:about')).status_code, 200)
 
+    def test_legal_pages_load(self):
+        self.assertEqual(self.client.get(reverse('main:offer')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('main:privacy_policy')).status_code, 200)
+
     def test_catalog_and_product_detail_load(self):
         category = Category.objects.create(name='Категория')
         product = Product.objects.create(
