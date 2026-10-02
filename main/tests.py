@@ -196,6 +196,39 @@ class PageSmokeTests(TestCase):
         )
 
 
+class PopularProductsOrderTests(TestCase):
+    """Карусель «Популярные сборки» должна слушаться ручного порядка из админки."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name='Категория')
+
+    def _popular(self, name, popular_order):
+        return Product.objects.create(
+            name=name, category=self.category, price=1000, in_stock=True,
+            is_popular=True, popular_order=popular_order, image=_make_test_image(),
+        )
+
+    def test_products_follow_manual_order(self):
+        # Создаём в обратном порядке, чтобы сортировка по дате дала другой результат.
+        third = self._popular('Третий', 30)
+        first = self._popular('Первый', 10)
+        second = self._popular('Второй', 20)
+
+        response = self.client.get(reverse('main:home'))
+
+        self.assertEqual(
+            list(response.context['popular_products']), [first, second, third],
+        )
+
+    def test_equal_order_falls_back_to_newest_first(self):
+        older = self._popular('Старый', 0)
+        newer = self._popular('Новый', 0)
+
+        response = self.client.get(reverse('main:home'))
+
+        self.assertEqual(list(response.context['popular_products']), [newer, older])
+
+
 class AdminDashboardTests(TestCase):
     def setUp(self):
         from django.contrib.auth.models import User

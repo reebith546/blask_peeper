@@ -15,6 +15,9 @@ from reviews.models import Review
 
 from .cart import Cart
 
+# Сколько букетов максимум попадает в карусель «Популярные сборки» на главной.
+POPULAR_PRODUCTS_LIMIT = 20
+
 
 def about(request):
     return render(request, 'main/about.html')
@@ -39,7 +42,8 @@ def home(request):
         'popular_products': (
             Product.objects
             .filter(is_popular=True, is_active=True, in_stock=True)
-            .select_related('category')[:4]
+            .select_related('category')
+            .order_by('popular_order', '-created_at')[:POPULAR_PRODUCTS_LIMIT]
         ),
         'categories': Category.objects.filter(is_active=True, show_on_homepage=True).order_by('order'),
         'instagram_blocks': (

@@ -41,6 +41,11 @@ class Product(models.Model):
     image = models.ImageField('Главное фото', upload_to='products/')
     in_stock = models.BooleanField('В наличии', default=True)
     is_popular = models.BooleanField('Популярное', default=False)
+    popular_order = models.PositiveIntegerField(
+        'Порядок в «Популярных сборках»', default=0,
+        help_text='Чем меньше число, тем левее букет в карусели на главной. '
+                  'При одинаковых числах сначала идут более новые.',
+    )
     is_active = models.BooleanField('Активен (виден в каталоге)', default=True)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
