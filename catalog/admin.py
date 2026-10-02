@@ -47,9 +47,11 @@ class ProductImageInline(admin.TabularInline):
 class ProductAdmin(AuditModelAdmin, admin.ModelAdmin):
     list_display = (
         'thumbnail', 'name', 'category', 'price', 'discount_price', 'discount_badge',
-        'in_stock', 'is_popular', 'is_active',
+        'in_stock', 'is_popular', 'popular_order', 'is_active',
     )
-    list_editable = ('price', 'discount_price', 'in_stock', 'is_popular', 'is_active')
+    list_editable = (
+        'price', 'discount_price', 'in_stock', 'is_popular', 'popular_order', 'is_active',
+    )
     list_filter = ('category', 'extra_categories', OnSaleFilter, 'is_popular', 'is_active')
     search_fields = ('name', 'composition')
     prepopulated_fields = {'slug': ('name',)}

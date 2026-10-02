@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -82,7 +83,8 @@ def home(request):
             Product.objects
             .filter(is_popular=True, is_active=True)
             .select_related('category')
-            .order_by('-created_at')
+            # Сначала с заданной позицией (1, 2, 3…), затем без неё — свежие первыми.
+            .order_by(F('popular_order').asc(nulls_last=True), '-created_at')
         ),
         'categories': Category.objects.filter(is_active=True, show_on_homepage=True).order_by('order'),
         'instagram_blocks': (

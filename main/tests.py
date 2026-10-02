@@ -609,6 +609,24 @@ class PageSmokeTests(TestCase):
         self.assertIn('Розы', html)
         self.assertNotIn('category-card__desc', html)
 
+    def test_home_popular_products_respect_popular_order(self):
+        category = Category.objects.create(name='Категория')
+
+        def make(name, order):
+            return Product.objects.create(
+                name=name, category=category, price=1000, is_popular=True,
+                popular_order=order, image=_make_test_image(),
+            )
+
+        unordered = make('Без номера', None)
+        third = make('Третий', 3)
+        first = make('Первый', 1)
+        second = make('Второй', 2)
+
+        response = self.client.get(reverse('main:home'))
+        shown = list(response.context['popular_products'])
+        self.assertEqual(shown, [first, second, third, unordered])
+
     def test_home_shows_all_popular_products(self):
         category = Category.objects.create(name='Категория')
         made = []
