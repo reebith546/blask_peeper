@@ -341,3 +341,10 @@ class HiddenProductAndSessionTests(SeoFixtureMixin, TestCase):
         self.assertEqual(html.count('name="csrfmiddlewaretoken"'), 1)
         self.assertIn('form="card-cart-form"', html)
         self.assertIn(f'formaction="{reverse("main:cart_add", args=[self.product.pk])}"', html)
+
+
+class FaviconTests(TestCase):
+    def test_root_favicon_redirects_to_static_icon(self):
+        response = self.client.get('/favicon.ico')
+        self.assertEqual(response.status_code, 301)
+        self.assertTrue(response['Location'].endswith('/static/images/favicon.ico'))

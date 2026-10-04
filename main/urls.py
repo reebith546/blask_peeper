@@ -1,4 +1,6 @@
+from django.templatetags.static import static
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
@@ -10,6 +12,7 @@ urlpatterns = [
     path('delivery/', views.delivery_page, name='delivery'),
     path('contacts/', views.contacts_page, name='contacts'),
     path('robots.txt', views.robots_txt, name='robots'),
+    path('favicon.ico', RedirectView.as_view(url=static('images/favicon.ico'), permanent=True)),
     path('offer/', views.offer, name='offer'),
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('cart/', views.cart_detail, name='cart'),
