@@ -77,9 +77,10 @@ class ProductVisibilityTests(TestCase):
         )
         resp = self.client.get(reverse('catalog:product_list'))
         self.assertNotIn(product, resp.context['products'])
-        self.assertEqual(
-            self.client.get(reverse('catalog:product_detail', args=[product.slug])).status_code, 404,
-        )
+        # Страница снятого товара не отдаёт 404 (SEO) — уводит в категорию, карточку не показывает.
+        resp = self.client.get(reverse('catalog:product_detail', args=[product.slug]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp['Location'], self.category.get_absolute_url())
 
     def test_cannot_add_out_of_stock_product_to_cart(self):
         product = Product.objects.create(

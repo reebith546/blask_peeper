@@ -144,6 +144,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Django Admin
+# Адрес админки можно сменить в .env (например ADMIN_URL=panel-x7k/) — меньше брутфорса.
+ADMIN_URL = env('ADMIN_URL', default='admin/').strip('/') + '/'
 ADMIN_SITE_HEADER = 'Blackpepper Flower Bar — управление магазином'
 ADMIN_SITE_TITLE = 'Blackpepper Admin'
 ADMIN_INDEX_TITLE = 'Панель управления'

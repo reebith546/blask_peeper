@@ -38,8 +38,13 @@ class RobotsAndSitemapTests(SeoFixtureMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'text/plain; charset=utf-8')
         body = resp.content.decode()
-        for path in ('/admin/', '/cart/', '/checkout/', '/order/', '/payments/'):
-            self.assertIn(f'Disallow: {path}', body)
+        self.assertIn('Disallow: /admin/', body)
+        # Страницы с noindex/canonical нельзя закрывать в robots.txt: робот
+        # не увидит мета-тег.
+        for path in ('/cart/', '/checkout/', '/order/', '/payments/', '?sort=', '?q='):
+            self.assertNotIn(f'Disallow: {path}', body)
+            self.assertNotIn(f'Disallow: /*{path}', body)
+        self.assertIn('Clean-param:', body)
         self.assertIn(f'Sitemap: {SITE}/sitemap.xml', body)
 
     def test_sitemap_lists_pages_categories_and_products_on_the_main_domain(self):
@@ -135,12 +140,11 @@ class ProductSeoTests(SeoFixtureMixin, TestCase):
     def _page(self):
         return self.client.get(self.product.get_absolute_url()).content.decode()
 
-    def test_product_title_has_russian_keywords_and_price(self):
+    def test_product_title_has_keywords_but_no_price(self):
         title = seo.product_title(self.product)
-        self.assertIn('Букет «Black Amour»', title)
-        self.assertIn('29 500 ₸', title)
-        self.assertIn('доставка по Алматы', title)
-        self.assertIn('Букет «Black Amour»: роза, маттиола —', title)
+        self.assertEqual(title, 'Букет «Black Amour» в Алматы: роза, маттиола · Blackpepper Flower Bar')
+        self.assertNotIn('₸', title)
+        self.assertIn('29 500 ₸', seo.product_description(self.product))
         self.assertIn(f'<title>{title}</title>', self._page())
 
     def test_composition_names_strip_quantities(self):
@@ -296,3 +300,32 @@ class SlugRedirectTests(SeoFixtureMixin, TestCase):
         response = self.client.get(reverse('catalog:product_list_by_category', args=[old]))
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response['Location'], self.category.get_absolute_url())
+
+
+class HiddenProductAndSessionTests(SeoFixtureMixin, TestCase):
+    def test_deactivated_product_redirects_to_its_category(self):
+        url = self.product.get_absolute_url()
+        self.product.is_active = False
+        self.product.save(update_fields=['is_active'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.category.get_absolute_url())
+
+    def test_unknown_product_is_still_404(self):
+        self.assertEqual(self.client.get('/catalog/product/net-takogo/').status_code, 404)
+
+    def test_anonymous_page_view_does_not_create_a_session(self):
+        for url in ('/', '/catalog/', self.product.get_absolute_url()):
+            response = self.client.get(url)
+            self.assertNotIn('sessionid', response.cookies, url)
+
+    def test_adding_to_cart_still_creates_session_and_keeps_item(self):
+        self.client.post(reverse('main:cart_add', args=[self.product.pk]))
+        self.assertIn('sessionid', self.client.cookies)
+        self.assertContains(self.client.get(reverse('main:cart')), 'Black Amour')
+
+    def test_catalog_cards_share_a_single_csrf_form(self):
+        html = self.client.get('/catalog/').content.decode()
+        self.assertEqual(html.count('name="csrfmiddlewaretoken"'), 1)
+        self.assertIn('form="card-cart-form"', html)
+        self.assertIn(f'formaction="{reverse("main:cart_add", args=[self.product.pk])}"', html)

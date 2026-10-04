@@ -283,3 +283,20 @@
       swiping = false;
     });
   })();
+
+// Цели аналитики: клики по WhatsApp / телефону / Instagram (если счётчики подключены).
+(function () {
+  var goals = [
+    ['a[href^="https://wa.me/"]', 'click_whatsapp'],
+    ['a[href^="tel:"]', 'click_phone'],
+    ['a[href*="instagram.com"]', 'click_instagram']
+  ];
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+    goals.forEach(function (g) {
+      if (!e.target.closest(g[0])) return;
+      if (window.METRIKA_ID && typeof window.ym === 'function') window.ym(window.METRIKA_ID, 'reachGoal', g[1]);
+      if (typeof window.gtag === 'function') window.gtag('event', g[1]);
+    });
+  });
+})();

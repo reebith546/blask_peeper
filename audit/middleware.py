@@ -6,13 +6,15 @@
 Технические ресурсы (jsi18n, статика, autocomplete-подсказки) не логируем,
 чтобы не засорять журнал служебными запросами каждой страницы.
 """
+from django.conf import settings
+
 from .context import clear_current_request, set_current_request
 from .models import AuditEvent
 from .services import record
 
-ADMIN_PREFIX = '/admin/'
+ADMIN_PREFIX = '/' + settings.ADMIN_URL
 _SKIP_SUFFIXES = ('/jsi18n/', '/autocomplete/')
-_SKIP_CONTAINS = ('/admin/js/', '/static/')
+_SKIP_CONTAINS = (ADMIN_PREFIX + 'js/', '/static/')
 
 
 class AuditContextMiddleware:

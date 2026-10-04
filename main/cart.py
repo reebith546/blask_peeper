@@ -11,10 +11,9 @@ class Cart:
 
     def __init__(self, request):
         self.session = request.session
-        cart = self.session.get(CART_SESSION_KEY)
-        if cart is None:
-            cart = self.session[CART_SESSION_KEY] = {}
-        self.cart = cart
+        # Не пишем в сессию при чтении: иначе каждый посетитель и робот
+        # получает sessionid, а страницы нельзя кэшировать.
+        self.cart = self.session.get(CART_SESSION_KEY) or {}
 
     def add(self, product, quantity=1):
         product_id = str(product.pk)
@@ -40,10 +39,11 @@ class Cart:
             self._save()
 
     def clear(self):
-        self.session[CART_SESSION_KEY] = {}
+        self.cart = {}
         self._save()
 
     def _save(self):
+        self.session[CART_SESSION_KEY] = self.cart
         self.session.modified = True
 
     def __iter__(self):

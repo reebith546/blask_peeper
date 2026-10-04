@@ -23,11 +23,12 @@
       </span>
     </div>
     {% if product.in_stock %}
-      <form class="bouquet-card__actions" action="{% url 'main:cart_add' product.pk %}" method="post">
-        {% csrf_token %}
-        <button class="bouquet-card__buy-now-btn" type="submit" name="next" value="{% url 'main:checkout' %}">Купить в 1 клик</button>
-        <button class="bouquet-card__cart-btn" type="submit" name="next" value="{{ request.path }}">В корзину</button>
-      </form>
+      {# Одна общая форма #card-cart-form на странице (блок card_form в base.html): #}
+      {# кнопки отправляют её через form/formaction — без CSRF-токена в каждой карточке. #}
+      <div class="bouquet-card__actions">
+        <button class="bouquet-card__buy-now-btn" type="submit" form="card-cart-form" formaction="{% url 'main:cart_add' product.pk %}" name="next" value="{% url 'main:checkout' %}">Купить в 1 клик</button>
+        <button class="bouquet-card__cart-btn" type="submit" form="card-cart-form" formaction="{% url 'main:cart_add' product.pk %}" name="next" value="{{ request.path }}">В корзину</button>
+      </div>
     {% else %}
       <span class="bouquet-card__out-of-stock">Нет в наличии</span>
     {% endif %}

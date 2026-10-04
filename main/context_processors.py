@@ -38,7 +38,7 @@ def seo(request):
 
     from . import seo as seo_helpers
 
-    if request.path.startswith('/admin/'):
+    if request.path.startswith('/' + settings.ADMIN_URL):
         return {}
     location = None
     try:

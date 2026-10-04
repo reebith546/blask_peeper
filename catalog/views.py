@@ -1,5 +1,5 @@
 from django.db.models import Avg, Count, Q
-from django.http import Http404, HttpResponsePermanentRedirect
+from django.http import Http404, HttpResponsePermanentRedirect, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
@@ -121,6 +121,15 @@ def product_detail(request, slug):
         )
         if moved:
             return HttpResponsePermanentRedirect(moved.product.get_absolute_url())
+        # Снятый с сайта букет не должен давать 404 у уже проиндексированной
+        # страницы: временно ведём в его категорию (товар может вернуться).
+        hidden = (
+            Product.objects.filter(slug=slug, is_active=False)
+            .select_related('category').first()
+        )
+        if hidden:
+            target = hidden.category.get_absolute_url() if hidden.category.is_active else reverse('catalog:product_list')
+            return HttpResponseRedirect(target)
         raise Http404
     description = seo.product_description(product)
 

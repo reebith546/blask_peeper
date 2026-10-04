@@ -10,7 +10,7 @@ from django.conf import settings
 from django.utils.encoding import iri_to_uri
 from django.utils.text import Truncator
 
-BRAND = 'Blackpepper'
+BRAND = 'Blackpepper Flower Bar'
 
 HOME_TITLE = f'Доставка цветов в Алматы — авторские букеты · {BRAND}'
 HOME_DESCRIPTION = (
@@ -33,7 +33,7 @@ DELIVERY_DESCRIPTION = (
     'Доставка цветов по Алматы от 40 минут: стоимость по районам, самовывоз с '
     'ул. Желтоксан, 87а, оплата онлайн. Фото готового букета перед отправкой.'
 )
-CONTACTS_TITLE = f'Контакты — цветочный магазин на Желтоксан, 87а, Алматы · {BRAND}'
+CONTACTS_TITLE = f'Контакты — цветочный магазин на Желтоксан, Алматы · {BRAND}'
 CONTACTS_DESCRIPTION = (
     f'Blackpepper Flower Bar: {settings.SHOP_ADDRESS_FULL}, телефон '
     f'{settings.SHOP_PHONE_DISPLAY}, ежедневно 11:00–21:00. Карта проезда.'
@@ -76,13 +76,14 @@ def composition_names(product, limit=None):
 def product_title(product):
     if product.seo_title:
         return product.seo_title
-    price = money(product.effective_price)
-    base = f'Букет «{product.name}»'
+    # Цену в title не кладём: при каждой смене цены/скидки в выдаче долго
+    # висела бы старая. Цена — в description и микроразметке.
+    base = f'Букет «{product.name}» в Алматы'
     names = composition_names(product, 2)
     # Состав в именительном падеже, поэтому не «с розой…», а «: роза, маттиола».
     with_flowers = f'{base}: {", ".join(names)}' if names else base
     for head in (with_flowers, base):
-        title = f'{head} — {price} ₸, доставка по Алматы'
+        title = f'{head} · {BRAND}'
         if len(title) <= 78:
             return title
     return title
