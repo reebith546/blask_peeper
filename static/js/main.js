@@ -297,6 +297,8 @@
       if (!e.target.closest(g[0])) return;
       if (window.METRIKA_ID && typeof window.ym === 'function') window.ym(window.METRIKA_ID, 'reachGoal', g[1]);
       if (typeof window.gtag === 'function') window.gtag('event', g[1]);
+      // Google Tag Manager: событие в dataLayer (триггер «Пользовательское событие» с этим именем).
+      if (Array.isArray(window.dataLayer)) window.dataLayer.push({ event: g[1] });
     });
   });
 })();

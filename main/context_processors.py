@@ -61,4 +61,5 @@ def seo(request):
         },
         'metrika_id': settings.YANDEX_METRIKA_ID,
         'ga4_id': settings.GA4_MEASUREMENT_ID,
+        'gtm_id': settings.GTM_ID,
     }

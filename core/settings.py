@@ -182,6 +182,8 @@ SHOP_EMAIL = env('SHOP_EMAIL', default='')
 # Счётчики аналитики подключаются, только если заданы ID.
 YANDEX_METRIKA_ID = env('YANDEX_METRIKA_ID', default='')
 GA4_MEASUREMENT_ID = env('GA4_MEASUREMENT_ID', default='')
+# Google Tag Manager (контейнер не секретный). Пустое значение в .env отключает GTM.
+GTM_ID = env('GTM_ID', default='GTM-PN4X74NN')
 
 # Яндекс Карты — автоподсказки адреса на чекауте.
 # Геосаджест отдаёт только текстовые подсказки, Геокодер — координаты выбранного

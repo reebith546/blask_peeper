@@ -3,6 +3,15 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+{% if gtm_id %}
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','{{ gtm_id }}');</script>
+<!-- End Google Tag Manager -->
+{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}{{ seo_title|default:"Доставка цветов в Алматы — авторские букеты · Blackpepper" }}{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ seo_description|default:"Авторские букеты с доставкой по Алматы от 40 минут. Свежие цветы, фото готового букета перед отправкой." }}{% endblock %}">
@@ -21,7 +30,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32.png' %}">
 <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
 <link rel="preload" href="{% static 'fonts/BebasNeue.woff2' %}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20261005">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
+<link rel="stylesheet" href="{% static 'css/main.css' %}?v=20261006">{# при правках CSS меняйте v, чтобы браузеры (особенно Safari) забрали новую версию #}
 <script type="application/ld+json">{{ org_jsonld|safe }}</script>
 {% for item in jsonld_extra %}<script type="application/ld+json">{{ item|safe }}</script>
 {% endfor %}
@@ -48,6 +57,12 @@
 {% endif %}
 </head>
 <body>
+{% if gtm_id %}
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+{% endif %}
 
 <header class="site-header" id="site-header">
   <div class="container site-header__inner">
@@ -179,7 +194,7 @@
   </div>
 </div>
 
-<script src="{% static 'js/main.js' %}?v=20261005" defer></script>
+<script src="{% static 'js/main.js' %}?v=20261006" defer></script>
 {% block card_form %}{% endblock %}
 </body>
 </html>

@@ -93,10 +93,22 @@ class HomeSeoTests(SeoFixtureMixin, TestCase):
         self.assertIn('mc.yandex.ru/metrika/tag.js', html)
         self.assertIn('G-TEST123', html)
 
-    def test_no_analytics_by_default(self):
+    @override_settings(GTM_ID='')
+    def test_no_analytics_when_ids_are_empty(self):
         html = self.client.get('/').content.decode()
         self.assertNotIn('mc.yandex.ru', html)
         self.assertNotIn('googletagmanager', html)
+
+    def test_google_tag_manager_is_installed_by_default(self):
+        html = self.client.get('/').content.decode()
+        self.assertEqual(html.count("'dataLayer','GTM-PN4X74NN'"), 1)
+        self.assertIn('googletagmanager.com/ns.html?id=GTM-PN4X74NN', html)
+        # скрипт — в <head>, noscript-iframe — сразу после <body>
+        self.assertLess(html.index("'dataLayer','GTM-PN4X74NN'"), html.index('</head>'))
+        self.assertLess(html.index('<body>'), html.index('ns.html?id=GTM-PN4X74NN'))
+
+    def test_gtm_is_not_added_to_admin(self):
+        self.assertNotIn('googletagmanager', self.client.get('/admin/login/').content.decode())
 
 
 class CatalogSeoTests(SeoFixtureMixin, TestCase):
