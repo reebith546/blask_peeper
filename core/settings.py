@@ -170,7 +170,7 @@ PAYMENTS_ENABLED = bool(TIPTOP_PUBLIC_ID and TIPTOP_API_SECRET)
 # --- SEO / публичные реквизиты магазина -----------------------------------
 # SITE_URL — боевой домен: из него строятся canonical, Open Graph, sitemap и
 # JSON-LD (поисковикам нужны абсолютные адреса именно основного зеркала).
-SITE_URL = env('SITE_URL', default='https://blackpepperflowerbar.kz')
+SITE_URL = env('SITE_URL', default='https://www.blackpepperflowerbar.kz')
 SHOP_NAME = 'Blackpepper Flower Bar'
 SHOP_PHONE = '+77066644144'
 SHOP_PHONE_DISPLAY = '+7 (706) 664-41-44'

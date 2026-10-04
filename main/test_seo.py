@@ -12,7 +12,7 @@ from main.tests import _make_test_image
 from main.templatetags.shop_extras import thumb
 from reviews.models import Review
 
-SITE = 'https://blackpepperflowerbar.kz'
+SITE = 'https://www.blackpepperflowerbar.kz'
 
 
 def _ld_blocks(html):

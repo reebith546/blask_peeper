@@ -192,36 +192,39 @@ sudo systemctl restart blackpepper
 
 ## 12. SEO: что сделать на сервере после обновления
 
-1. **nginx** — в `deploy/nginx.conf` теперь есть редирект www → основной домен (301), кэш на
-   `/static/` и `/media/` (30 дней) и gzip. certbot уже переписал боевой конфиг, поэтому
-   не копируйте файл поверх: перенесите в `/etc/nginx/sites-available/blackpepper` три вещи —
-   блок `gzip …`, `expires 30d; add_header Cache-Control "public";` в `location /static/` и
-   `/media/`, и отдельный `server` для `www.` с `return 301 https://blackpepperflowerbar.kz$request_uri;`
-   (и на 80, и на 443 с теми же сертификатами). Проверка: `sudo nginx -t && sudo systemctl reload nginx`,
-   затем `curl -sI https://www.blackpepperflowerbar.kz/ | head -3` — должно быть `301`.
+1. **nginx** — в `deploy/nginx.conf` главное зеркало теперь `www.blackpepperflowerbar.kz`, а домен
+   без www редиректит на него (301). Там же кэш на `/static/` и `/media/` (30 дней) и gzip.
+   certbot уже переписал боевой конфиг, поэтому не копируйте файл поверх, а правьте боевой
+   `/etc/nginx/sites-available/blackpepper`:
+   - блок `server`, где `server_name blackpepperflowerbar.kz` (и на 80, и на 443 — certbot
+     продублировал его) — это **редирект**: удалите из него `location`-ы и оставьте только
+     `return 301 https://www.blackpepperflowerbar.kz$request_uri;`;
+   - блок `server_name www.blackpepperflowerbar.kz` — **основной** (со `static`, `media`,
+     `proxy_pass` на gunicorn). Если раньше www был редиректом, верните в него эти `location`-ы;
+   - добавьте блок `gzip …` и `expires 30d; add_header Cache-Control "public";` в `location /static/`
+     и `/media/`.
+
+   Проверка: `sudo nginx -t && sudo systemctl reload nginx`, затем
+   `curl -sI https://blackpepperflowerbar.kz/ | head -3` — `301` на `https://www…`, а
+   `curl -sI https://www.blackpepperflowerbar.kz/ | head -3` — `200`.
 2. **.env** — добавьте при необходимости:
    `SHOP_EMAIL=...` (почта магазина, выводится на «Контактах» и в разметке),
    `YANDEX_METRIKA_ID=...`, `GA4_MEASUREMENT_ID=G-...` (счётчики подключатся сами, пока пусто — их нет),
-   `SITE_URL=https://blackpepperflowerbar.kz` (по умолчанию уже так).
+   `SITE_URL=https://www.blackpepperflowerbar.kz` (по умолчанию уже так — главное зеркало www).
 3. После `git pull`: `python manage.py migrate`, `collectstatic`, `sudo systemctl restart blackpepper`.
 4. Проверьте `https://…/robots.txt` и `https://…/sitemap.xml`, отправьте sitemap в Яндекс.Вебмастер
    и Google Search Console.
 
 
-### Какое зеркало главное: www или без www
+### Главное зеркало: www
 
-Сейчас в поисковой выдаче проиндексирован `www.blackpepperflowerbar.kz`. Редирект в сторону,
-противоположную индексу, даёт просадку позиций на 2–6 недель. Выберите осознанно:
+В поисковой выдаче проиндексирован `www.blackpepperflowerbar.kz`, поэтому он и главный: редирект в
+сторону индекса не даёт просадки позиций. canonical, sitemap и robots берут домен из `SITE_URL`
+(по умолчанию `https://www.blackpepperflowerbar.kz`), а nginx редиректит без-www на www — эти два
+места должны совпадать, иначе canonical поведёт на домен, который редиректит обратно.
 
-- **Оставить www главным** (безопаснее, пока сайт молодой): в `.env` поставьте
-  `SITE_URL=https://www.blackpepperflowerbar.kz`, а в nginx редиректите **без-www на www**
-  (зеркальный `server`-блок для `blackpepperflowerbar.kz`). canonical, sitemap и robots возьмут
-  домен из `SITE_URL`.
-- **Перейти на без-www** (как в `deploy/nginx.conf` по умолчанию): примите временную просадку и
-  в Яндекс.Вебмастере укажите главное зеркало.
-
-Склейка зеркал должна совпадать с `SITE_URL`, иначе canonical будет вести на домен, который
-редиректит обратно.
+После переключения укажите в Яндекс.Вебмастере (Индексирование → Переезд сайта) главное зеркало
+`www`, а в Google Search Console добавьте оба варианта (или ресурс «Домен»).
 
 ### Адрес админки
 
