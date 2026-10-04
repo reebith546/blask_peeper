@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load shop_extras %}
+
+{% block content %}
+
+<section class="page-hero{% if site_hero_image %} page-hero--image{% endif %}"{% if site_hero_image %} style="background-image: url('{{ site_hero_image }}')"{% endif %}>
+  <div class="container">
+    <span class="eyebrow">Доставка и оплата</span>
+    <h1 class="page-hero__title">Доставка цветов по Алматы</h1>
+    <p class="page-hero__text">
+      Привезём букет от 40 минут после подтверждения заказа и пришлём фото готового
+      букета перед отправкой.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container legal">
+    <h2>Стоимость доставки по Алматы</h2>
+    {% if zones %}
+    <table class="zones-table">
+      <thead><tr><th>Зона</th><th>Расстояние от магазина</th><th>Время</th><th>Стоимость</th></tr></thead>
+      <tbody>
+        {% for zone in zones %}
+        <tr>
+          <td>{{ zone.name }}</td>
+          <td>{{ zone.radius_from_km|floatformat:"-1" }}–{{ zone.radius_to_km|floatformat:"-1" }} км</td>
+          <td>от {{ zone.delivery_time_minutes }} мин</td>
+          <td>{% if zone.price_on_request or zone.price is None %}по согласованию{% elif zone.price == 0 %}бесплатно{% else %}{{ zone.price|kzt }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>Точную стоимость сайт рассчитывает по адресу при оформлении заказа. Для дальних адресов
+       и Алматинской области менеджер согласует цену по телефону.</p>
+    {% else %}
+    <p>Стоимость доставки зависит от района — рассчитывается автоматически по адресу при оформлении заказа.</p>
+    {% endif %}
+
+    <h2>Как оплатить</h2>
+    <p>Картой онлайн на сайте при оформлении заказа. Если стоимость доставки согласует менеджер,
+       букет оплачивается сразу, а доставка — отдельно после звонка.</p>
+
+    <h2>Самовывоз</h2>
+    <p>Бесплатно: {{ shop.address }}, ежедневно с 11:00 до 21:00. Менеджер позвонит и согласует время.</p>
+
+    <h2>Фото перед отправкой</h2>
+    <p>Перед доставкой мы присылаем фото готового букета — вы увидите его до того, как он поедет к получателю.</p>
+
+    <div class="hero__buttons">
+      <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-light">Выбрать букет</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

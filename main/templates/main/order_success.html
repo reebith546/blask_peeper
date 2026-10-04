@@ -2,6 +2,7 @@
 {% load shop_extras %}
 
 {% block title %}Заказ №{{ order.pk }} — Blackpepper Flower Bar{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block extra_head %}
 {% if order.status == 'pending_payment' %}

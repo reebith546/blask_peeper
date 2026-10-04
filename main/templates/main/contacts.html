@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="page-hero{% if site_hero_image %} page-hero--image{% endif %}"{% if site_hero_image %} style="background-image: url('{{ site_hero_image }}')"{% endif %}>
+  <div class="container">
+    <span class="eyebrow">Контакты</span>
+    <h1 class="page-hero__title">Цветочный магазин на Желтоксан</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container contacts-grid">
+    <div>
+      <h2 class="section-title">Blackpepper Flower Bar</h2>
+      <p class="contacts-line">{{ shop.address }}</p>
+      <p class="contacts-line"><a href="tel:{{ shop.phone }}">{{ shop.phone_display }}</a></p>
+      {% if shop.email %}<p class="contacts-line"><a href="mailto:{{ shop.email }}">{{ shop.email }}</a></p>{% endif %}
+      <p class="contacts-line">Пн–Вс: 11:00–21:00. Доставка — ежедневно.</p>
+      <p class="contacts-line">
+        <a href="https://wa.me/{{ shop.phone|cut:'+' }}" target="_blank" rel="noopener">WhatsApp</a> ·
+        <a href="https://www.instagram.com/blackpepperflowerbar" target="_blank" rel="noopener">Instagram</a>
+      </p>
+      <div class="hero__buttons">
+        <a href="{% url 'catalog:product_list' %}" class="btn btn--outline-light">Смотреть каталог</a>
+        <a href="{% url 'main:delivery' %}" class="btn btn--outline-light">Доставка и оплата</a>
+      </div>
+    </div>
+    {% if map_src %}
+    <div class="contacts-map">
+      <iframe title="Карта: Blackpepper Flower Bar, {{ shop.address }}" src="{{ map_src }}"
+              width="100%" height="380" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

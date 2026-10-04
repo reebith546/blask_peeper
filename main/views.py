@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
 from django.db.models import F
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -14,13 +14,14 @@ import requests
 
 from catalog.models import Category, Product
 from content.models import HomepageBlock
-from delivery.models import ShopLocation
+from delivery.models import DeliveryZone, ShopLocation
 from delivery.services import QUOTE_NOTES, quote_delivery, suggest_addresses
 from notify import services as telegram
 from orders.models import Order, OrderItem
 from payments import gateway
 from reviews.models import Review
 
+from . import seo
 from .cart import Cart
 
 logger = logging.getLogger('checkout')
@@ -56,18 +57,105 @@ def _checkout_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
+HOME_FAQ = [
+    ('Как быстро доставите букет по Алматы?',
+     'Доставляем по Алматы от 40 минут после подтверждения заказа. Точное время зависит '
+     'от района и загруженности дорог — менеджер назовёт его при подтверждении.'),
+    ('Можно ли заказать доставку анонимно?',
+     'Да. Укажите в заказе получателя и оставьте текст открытки — имя отправителя мы '
+     'получателю не сообщаем, если вы об этом просите.'),
+    ('Доставляете ли в Алматинскую область?',
+     'Да, доставляем и в Алматинскую область. Стоимость для дальних адресов менеджер '
+     'согласует с вами по телефону — букет при этом можно оплатить онлайн сразу.'),
+    ('Пришлёте ли фото букета перед отправкой?',
+     'Да. Перед доставкой мы отправляем фото готового букета, чтобы вы убедились, '
+     'что он вам нравится.'),
+    ('Как оплатить заказ?',
+     'Картой онлайн на сайте при оформлении заказа. Стоимость доставки, если её '
+     'согласует менеджер, оплачивается отдельно.'),
+    ('Можно ли забрать букет самостоятельно?',
+     f'Да, самовывоз бесплатно: {settings.SHOP_ADDRESS_FULL}, ежедневно с 11:00 до 21:00. '
+     'Менеджер позвонит и согласует время.'),
+]
+
+
 def about(request):
-    return render(request, 'main/about.html')
+    return render(request, 'main/about.html', {
+        'seo_title': seo.ABOUT_TITLE,
+        'seo_description': seo.ABOUT_DESCRIPTION,
+    })
 
 
 def offer(request):
     """Публичный договор-оферта купли-продажи и доставки цветочной продукции."""
-    return render(request, 'main/legal_offer.html')
+    return render(request, 'main/legal_offer.html', {
+        'seo_title': seo.LEGAL_OFFER_TITLE,
+        'seo_description': 'Публичная оферта Blackpepper Flower Bar: условия заказа, оплаты, '
+                           'доставки и возврата цветочной продукции.',
+    })
 
 
 def privacy_policy(request):
     """Политика конфиденциальности и обработки персональных данных."""
-    return render(request, 'main/legal_privacy.html')
+    return render(request, 'main/legal_privacy.html', {
+        'seo_title': seo.LEGAL_PRIVACY_TITLE,
+        'seo_description': 'Политика конфиденциальности Blackpepper Flower Bar: какие '
+                           'данные мы собираем и как их обрабатываем.',
+    })
+
+
+def delivery_page(request):
+    """Отдельная страница «Доставка и оплата» — под запросы про стоимость доставки."""
+    zones = DeliveryZone.objects.filter(is_active=True)
+    return render(request, 'main/delivery.html', {
+        'zones': zones,
+        'seo_title': seo.DELIVERY_TITLE,
+        'seo_description': seo.DELIVERY_DESCRIPTION,
+        'jsonld_extra': [seo.to_jsonld(seo.breadcrumbs_jsonld([
+            ('Главная', seo.absolute_url('/')),
+            ('Доставка и оплата', seo.absolute_url(reverse('main:delivery'))),
+        ]))],
+    })
+
+
+def contacts_page(request):
+    """Контакты: адрес, телефон, часы работы и карта."""
+    location = ShopLocation.objects.first()
+    map_src = ''
+    if location:
+        point = f'{location.longitude}%2C{location.latitude}'
+        map_src = f'https://yandex.ru/map-widget/v1/?ll={point}&z=16&pt={point}%2Cpm2rdm'
+    return render(request, 'main/contacts.html', {
+        'map_src': map_src,
+        'seo_title': seo.CONTACTS_TITLE,
+        'seo_description': seo.CONTACTS_DESCRIPTION,
+        'jsonld_extra': [seo.to_jsonld(seo.breadcrumbs_jsonld([
+            ('Главная', seo.absolute_url('/')),
+            ('Контакты', seo.absolute_url(reverse('main:contacts'))),
+        ]))],
+    })
+
+
+def robots_txt(request):
+    lines = [
+        'User-agent: *',
+        'Disallow: /admin/',
+        'Disallow: /cart/',
+        'Disallow: /checkout/',
+        'Disallow: /order/',
+        'Disallow: /payments/',
+        'Disallow: /*?sort=',
+        'Disallow: /*?min_price=',
+        'Disallow: /*?max_price=',
+        'Disallow: /*?q=',
+        '',
+        '# Яндекс: параметры фильтрации не создают новых страниц',
+        'Clean-param: sort&min_price&max_price&q /catalog/',
+        '',
+        f'Sitemap: {seo.absolute_url("/sitemap.xml")}',
+        '',
+    ]
+    return HttpResponse('\n'.join(lines), content_type='text/plain; charset=utf-8')
 
 
 def home(request):
@@ -97,6 +185,10 @@ def home(request):
             .filter(status=Review.Status.PUBLISHED)
             .order_by('-created_at')[:4]
         ),
+        'faq': HOME_FAQ,
+        'seo_title': seo.HOME_TITLE,
+        'seo_description': seo.HOME_DESCRIPTION,
+        'jsonld_extra': [seo.to_jsonld(seo.faq_jsonld(HOME_FAQ))],
     }
     return render(request, 'main/home.html', context)
 

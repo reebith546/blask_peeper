@@ -33,7 +33,10 @@ class CategoryAdmin(AuditModelAdmin, admin.ModelAdmin):
     list_editable = ('order', 'is_active', 'show_on_homepage')
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name', 'description')
-    fields = ('name', 'slug', 'description', 'image', 'order', 'is_active', 'show_on_homepage')
+    fields = (
+        'name', 'slug', 'description', 'image', 'order', 'is_active', 'show_on_homepage',
+        'seo_title', 'seo_description', 'seo_text',
+    )
 
     @admin.display(description='Фото')
     def thumbnail(self, obj):

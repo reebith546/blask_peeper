@@ -1,5 +1,6 @@
 from django.db import models
-from django.utils.text import slugify
+from django.urls import reverse
+from .utils import normalize_slug, unique_slug
 
 
 class Category(models.Model):
@@ -16,6 +17,19 @@ class Category(models.Model):
     order = models.PositiveIntegerField('Порядок сортировки', default=0)
     is_active = models.BooleanField('Активна', default=True)
     show_on_homepage = models.BooleanField('Показывать на главной', default=True)
+    seo_title = models.CharField(
+        'SEO-заголовок (title)', max_length=70, blank=True,
+        help_text='Необязательно. Если пусто — собирается автоматически из названия.',
+    )
+    seo_description = models.CharField(
+        'SEO-описание (для сниппета в поиске)', max_length=170, blank=True,
+        help_text='Необязательно. Если пусто — собирается автоматически.',
+    )
+    seo_text = models.TextField(
+        'SEO-текст под товарами', blank=True,
+        help_text='Текст на 1000–2000 знаков внизу страницы категории: о чём эти букеты, '
+                  'для кого и для какого повода. Абзацы — через пустую строку.',
+    )
 
     class Meta:
         verbose_name = 'Категория'
@@ -26,9 +40,14 @@ class Category(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+        old_slug = type(self).objects.filter(pk=self.pk).values_list('slug', flat=True).first() if self.pk else None
+        self.slug = unique_slug(type(self), normalize_slug(self.slug or self.name), self.pk)
         super().save(*args, **kwargs)
+        if old_slug and old_slug != self.slug:
+            SlugRedirect.remember(old_slug, category=self)
+
+    def get_absolute_url(self):
+        return reverse('catalog:product_list_by_category', args=[self.slug])
 
 
 class Product(models.Model):
@@ -45,6 +64,12 @@ class Product(models.Model):
                   'основная категория (поле выше) не дублируется, указывать её здесь не нужно.',
     )
     name = models.CharField('Название', max_length=200)
+    subtitle = models.CharField(
+        'Подзаголовок (по-русски)', max_length=160, blank=True,
+        help_text='Что это за букет простыми словами — например «Букет с кустовыми розами, '
+                  'маттиолой и эрингиумом». Выводится под названием и попадает в заголовок '
+                  'страницы: по английскому названию букеты не ищут.',
+    )
     slug = models.SlugField('Слаг (для URL)', max_length=210, unique=True, blank=True, allow_unicode=True)
     price = models.DecimalField('Цена, ₸', max_digits=10, decimal_places=2)
     discount_price = models.DecimalField(
@@ -53,6 +78,14 @@ class Product(models.Model):
                    'этой цене везде (каталог, карточка, корзина, заказ) с зачёркнутой '
                    'обычной ценой рядом. Оставьте пустым или больше/равно обычной '
                    'цене — скидка не действует.',
+    )
+    seo_title = models.CharField(
+        'SEO-заголовок (title)', max_length=70, blank=True,
+        help_text='Необязательно. Если пусто — собирается автоматически.',
+    )
+    seo_description = models.CharField(
+        'SEO-описание (для сниппета в поиске)', max_length=170, blank=True,
+        help_text='Необязательно. Если пусто — собирается автоматически из состава и цены.',
     )
     composition = models.TextField(
         'Состав', blank=True,
@@ -81,9 +114,25 @@ class Product(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+        old_slug = type(self).objects.filter(pk=self.pk).values_list('slug', flat=True).first() if self.pk else None
+        self.slug = unique_slug(type(self), normalize_slug(self.slug or self.name), self.pk)
         super().save(*args, **kwargs)
+        if old_slug and old_slug != self.slug:
+            SlugRedirect.remember(old_slug, product=self)
+
+    def get_absolute_url(self):
+        return reverse('catalog:product_detail', args=[self.slug])
+
+    @property
+    def image_alt(self):
+        """alt для фото: по-русски и с составом — по картинкам цветы ищут активно."""
+        from main.seo import composition_names
+
+        detail = self.subtitle or ', '.join(composition_names(self, 3))
+        alt = f'Букет «{self.name}»'
+        if detail:
+            alt += f' — {detail}'
+        return f'{alt}. Blackpepper, Алматы'
 
     @property
     def composition_lines(self):
@@ -143,3 +192,32 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f'{self.product.name} — фото {self.order}'
+
+
+class SlugRedirect(models.Model):
+    """Прежний адрес категории/товара — чтобы после смены slug старая ссылка
+    (из поиска, мессенджеров, закладок) вела 301-редиректом на новую, а вес
+    страницы не терялся."""
+
+    old_slug = models.CharField('Прежний slug', max_length=210, db_index=True)
+    category = models.ForeignKey(
+        Category, verbose_name='Категория', null=True, blank=True,
+        related_name='old_slugs', on_delete=models.CASCADE,
+    )
+    product = models.ForeignKey(
+        'Product', verbose_name='Товар', null=True, blank=True,
+        related_name='old_slugs', on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        verbose_name = 'Редирект со старого адреса'
+        verbose_name_plural = 'Редиректы со старых адресов'
+
+    def __str__(self):
+        return f'/{self.old_slug}/ → {self.category or self.product}'
+
+    @classmethod
+    def remember(cls, old_slug, category=None, product=None):
+        cls.objects.update_or_create(
+            old_slug=old_slug, category=category, product=product, defaults={},
+        )

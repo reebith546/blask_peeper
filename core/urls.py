@@ -17,8 +17,10 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
+from catalog.sitemaps import CategorySitemap, ProductSitemap, StaticSitemap
 from core.admin import install as install_admin_dashboard
 
 admin.site.site_header = settings.ADMIN_SITE_HEADER
@@ -26,8 +28,15 @@ admin.site.site_title = settings.ADMIN_SITE_TITLE
 admin.site.index_title = settings.ADMIN_INDEX_TITLE
 install_admin_dashboard()
 
+sitemaps = {
+    'static': StaticSitemap,
+    'categories': CategorySitemap,
+    'products': ProductSitemap,
+}
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('catalog/', include('catalog.urls')),
     path('payments/', include('payments.urls')),
     path('', include('main.urls')),

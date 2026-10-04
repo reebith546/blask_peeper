@@ -3,7 +3,7 @@
   <div class="bouquet-card__image-wrap">
     {% if product.is_on_sale %}<span class="sale-badge">-{{ product.discount_percent }}%</span>{% endif %}
     <a href="{% url 'catalog:product_detail' product.slug %}"{% if lightbox_group %} class="js-lightbox" data-lightbox-group="{{ lightbox_group }}" data-lightbox-src="{{ product.image.url }}" data-lightbox-alt="{{ product.name }}"{% endif %}>
-      <img class="bouquet-card__image" src="{{ product.image.url }}" alt="{{ product.name }}">
+      <img class="bouquet-card__image" src="{{ product.image|thumb:'600x750' }}" width="600" height="750" alt="{{ product.image_alt }}" loading="lazy" decoding="async">
     </a>
   </div>
   <div class="bouquet-card__body">

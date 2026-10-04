@@ -688,7 +688,8 @@ class PageSmokeTests(TestCase):
             with self.subTest(page=name):
                 html = self.client.get(reverse(name, args=args)).content.decode()
                 self.assertIn('page-hero--image', html)
-                self.assertIn(block.image.url, html)
+                # Фон отдаётся облегчённой WebP-копией (thumbs/1600/…), а не оригиналом.
+                self.assertIn('/thumbs/1600/', html)
 
     def test_internal_page_headers_stay_plain_without_a_hero_block(self):
         html = self.client.get(reverse('main:about')).content.decode()

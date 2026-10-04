@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 {% load shop_extras %}
 
+{% block hero_preload %}{% if hero_block.image %}<link rel="preload" as="image" href="{{ hero_block.image|thumb:'1600' }}" fetchpriority="high">{% endif %}{% endblock %}
+
 {% block content %}
 
-<section class="hero{% if hero_block.image %} hero--image{% endif %}"{% if hero_block.image %} style="background-image: url('{{ hero_block.image.url }}')"{% endif %}>
+<section class="hero{% if hero_block.image %} hero--image{% endif %}"{% if hero_block.image %} style="background-image: url('{{ hero_block.image|thumb:'1600' }}')"{% endif %}>
   <div class="container hero__grid">
     <div>
       <span class="eyebrow">Авторская флористика • Алматы</span>
+      <h1 class="hero__title hero__title--seo">Доставка цветов и авторских букетов в Алматы</h1>
       {% if hero_block and hero_block.subtitle %}
         <p class="hero__description">{{ hero_block.subtitle }}</p>
       {% else %}
@@ -24,7 +27,7 @@
 <section class="section" id="popular">
   <div class="container">
     <div class="section-head">
-      <h2 class="section-title">Популярные сборки</h2>
+      <h2 class="section-title">Популярные букеты</h2>
       <a href="{% url 'catalog:product_list' %}" class="section-link">Смотреть все →</a>
     </div>
     <div class="carousel">
@@ -48,13 +51,13 @@
 <section class="section" id="categories">
   <div class="container">
     <div class="section-head">
-      <h2 class="section-title">Категории</h2>
+      <h2 class="section-title">Каталог цветов по поводам</h2>
     </div>
     <div class="categories-grid">
       {% for category in categories %}
       <a class="category-card" href="{% url 'catalog:product_list_by_category' category.slug %}">
         {% if category.image %}
-          <img class="category-card__image" src="{{ category.image.url }}" alt="{{ category.name }}">
+          <img class="category-card__image" src="{{ category.image|thumb:'700x875' }}" width="700" height="875" alt="{{ category.name }} — авторские букеты с доставкой по Алматы" loading="lazy" decoding="async">
         {% else %}
           <span class="category-card__image category-card__image--empty"></span>
         {% endif %}
@@ -78,6 +81,7 @@
 
 <section class="advantages" id="advantages">
   <div class="container">
+    <h2 class="visually-hidden">Почему заказывают у нас</h2>
     <div class="advantages-grid">
       <div class="advantage">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13Z" stroke="currentColor" stroke-width="1.6"/></svg>
@@ -114,7 +118,7 @@
     </div>
     <div class="instagram-grid">
       {% for item in instagram_blocks %}
-      <div class="instagram-item"><img src="{{ item.image.url }}" alt="{{ item.title }}"></div>
+      <div class="instagram-item"><img src="{{ item.image|thumb:'500x500' }}" width="500" height="500" alt="{{ item.title|default:'Работа флориста Blackpepper — авторский букет, Алматы' }}" loading="lazy" decoding="async"></div>
       {% endfor %}
     </div>
   </div>
@@ -137,5 +141,38 @@
   </div>
 </section>
 {% endif %}
+
+<section class="section seo-block">
+  <div class="container">
+    <div class="seo-text">
+      <h2 class="section-title">Доставка цветов в Алматы от Blackpepper Flower Bar</h2>
+      <p>
+        Blackpepper Flower Bar — цветочный бар на ул. Желтоксан, 87а: мы собираем авторские букеты
+        из свежих цветов и доставляем их по Алматы от 40 минут. Каждая композиция — работа флориста,
+        а не сборка по шаблону: подбираем сочетание цветов, фактуру и упаковку под повод и характер
+        получателя.
+      </p>
+      <p>
+        В каталоге — монобукеты и авторские композиции, розы, пионы, тюльпаны, хризантемы, цветы в коробках
+        и подарочные сборки на день рождения, свадьбу, 8 марта и просто так. Выберите букет на сайте,
+        оплатите онлайн — перед отправкой мы пришлём фото готового букета, чтобы вы убедились, что он вам
+        нравится. Доставляем по всему городу и в Алматинскую область, стоимость зависит от района
+        (<a href="{% url 'main:delivery' %}">зоны и цены доставки</a>). Можно забрать заказ самостоятельно — бесплатно.
+      </p>
+    </div>
+
+    {% if faq %}
+    <div class="faq">
+      <h2 class="section-title">Частые вопросы</h2>
+      {% for question, answer in faq %}
+      <details class="faq__item">
+        <summary>{{ question }}</summary>
+        <p>{{ answer }}</p>
+      </details>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
 
 {% endblock %}

@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% load shop_extras %}
 
-{% block title %}{{ product.name }} — Blackpepper Flower Bar{% endblock %}
-
 {% block content %}
+
+<nav class="breadcrumbs container" aria-label="Хлебные крошки">
+  {% for name, url in breadcrumbs %}
+    {% if forloop.last %}<span aria-current="page">{{ name }}</span>
+    {% else %}<a href="{{ url }}">{{ name }}</a><span class="breadcrumbs__sep">›</span>{% endif %}
+  {% endfor %}
+</nav>
 
 <section class="product-detail">
   <div class="container product-detail__grid">
@@ -15,7 +20,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         {% endif %}
-        <img class="product-slider__main" id="product-slider-main" src="{{ product.image.url }}" alt="{{ product.name }}">
+        <img class="product-slider__main" id="product-slider-main" src="{{ product.image|thumb:'1000' }}" alt="{{ product.image_alt }}" fetchpriority="high" decoding="async">
         {% if gallery %}
         <button type="button" class="product-slider__nav product-slider__nav--next" data-slider-next aria-label="Следующее фото">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -24,12 +29,12 @@
       </div>
       {% if gallery %}
       <div class="product-slider__thumbs">
-        <button type="button" class="product-slider__thumb is-active" data-slider-src="{{ product.image.url }}">
-          <img src="{{ product.image.url }}" alt="">
+        <button type="button" class="product-slider__thumb is-active" data-slider-src="{{ product.image|thumb:'1000' }}" aria-label="Фото 1">
+          <img src="{{ product.image|thumb:'160x160' }}" width="160" height="160" alt="Фото 1 — {{ product.image_alt }}" loading="lazy" decoding="async">
         </button>
         {% for photo in gallery %}
-        <button type="button" class="product-slider__thumb" data-slider-src="{{ photo.image.url }}">
-          <img src="{{ photo.image.url }}" alt="">
+        <button type="button" class="product-slider__thumb" data-slider-src="{{ photo.image|thumb:'1000' }}" aria-label="Фото {{ forloop.counter|add:1 }}">
+          <img src="{{ photo.image|thumb:'160x160' }}" width="160" height="160" alt="Фото {{ forloop.counter|add:1 }} — {{ product.image_alt }}" loading="lazy" decoding="async">
         </button>
         {% endfor %}
       </div>
@@ -40,6 +45,7 @@
     <div>
       <span class="eyebrow">{{ product.all_categories|join:" · " }}</span>
       <h1 class="product-detail__title">{{ product.name }}</h1>
+      {% if product.subtitle %}<p class="product-detail__subtitle">{{ product.subtitle }}</p>{% endif %}
       <div class="product-detail__price">
         {% if product.is_on_sale %}
           <span class="price-old">{{ product.price|kzt }}</span>
@@ -75,5 +81,62 @@
     </div>
   </div>
 </section>
+
+<section class="product-info">
+  <div class="container product-info__grid">
+    <div>
+      <h2 class="product-info__title">О букете «{{ product.name }}»</h2>
+      {% if product.description %}
+        <p>{{ product.description|linebreaksbr }}</p>
+      {% else %}
+        <p>
+          Авторский букет «{{ product.name }}» собирает флорист Blackpepper Flower Bar в Алматы
+          {% if product.composition_lines %}из свежих цветов: {{ product.composition_lines|join:", "|lower }}{% else %}из свежих цветов{% endif %}.
+          Состав можно слегка скорректировать под ваш повод и бюджет — напишите нам или позвоните.
+        </p>
+      {% endif %}
+    </div>
+    <div class="product-info__facts">
+      <h2 class="product-info__title">Доставка и оплата</h2>
+      <ul>
+        <li><strong>Доставка по Алматы</strong> от 40 минут, стоимость зависит от района — <a href="{% url 'main:delivery' %}">смотреть зоны и цены</a>.</li>
+        <li><strong>Фото перед отправкой</strong> — пришлём снимок готового букета.</li>
+        <li><strong>Оплата</strong> картой онлайн при оформлении заказа.</li>
+        <li><strong>Самовывоз</strong> бесплатно: {{ shop.address }}, ежедневно 11:00–21:00.</li>
+        <li><strong>Как ухаживать:</strong> подрежьте стебли под углом, поставьте в прохладную воду и меняйте её раз в 1–2 дня — так букет простоит дольше.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% if reviews %}
+<section class="product-info product-reviews">
+  <div class="container">
+    <h2 class="product-info__title">Отзывы о букете{% if rating %} — {{ rating.avg }} из 5 ({{ rating.count }}){% endif %}</h2>
+    <div class="reviews-grid">
+      {% for review in reviews %}
+      <div class="review-card">
+        <div class="review-card__stars">{{ review.rating|stars }}</div>
+        <p class="review-card__text">«{{ review.text }}»</p>
+        <span class="review-card__author">{{ review.author_name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if similar_products %}
+<section class="product-info product-similar">
+  <div class="container">
+    <h2 class="product-info__title">Похожие букеты</h2>
+    <div class="bouquets-grid">
+      {% for product in similar_products %}
+        {% include "catalog/includes/product_card.html" %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
 
 {% endblock %}

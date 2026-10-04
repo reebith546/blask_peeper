@@ -189,3 +189,21 @@ sudo systemctl restart blackpepper
 Не забывайте про `pg_dump` и копию папки `media/` — см. инструкцию в истории
 чата или попросите заново, если понадобится. На проде это особенно важно —
 там уже настоящие заказы клиентов.
+
+## 12. SEO: что сделать на сервере после обновления
+
+1. **nginx** — в `deploy/nginx.conf` теперь есть редирект www → основной домен (301), кэш на
+   `/static/` и `/media/` (30 дней) и gzip. certbot уже переписал боевой конфиг, поэтому
+   не копируйте файл поверх: перенесите в `/etc/nginx/sites-available/blackpepper` три вещи —
+   блок `gzip …`, `expires 30d; add_header Cache-Control "public";` в `location /static/` и
+   `/media/`, и отдельный `server` для `www.` с `return 301 https://blackpepperflowerbar.kz$request_uri;`
+   (и на 80, и на 443 с теми же сертификатами). Проверка: `sudo nginx -t && sudo systemctl reload nginx`,
+   затем `curl -sI https://www.blackpepperflowerbar.kz/ | head -3` — должно быть `301`.
+2. **.env** — добавьте при необходимости:
+   `SHOP_EMAIL=...` (почта магазина, выводится на «Контактах» и в разметке),
+   `YANDEX_METRIKA_ID=...`, `GA4_MEASUREMENT_ID=G-...` (счётчики подключатся сами, пока пусто — их нет),
+   `SITE_URL=https://blackpepperflowerbar.kz` (по умолчанию уже так).
+3. После `git pull`: `python manage.py migrate`, `collectstatic`, `sudo systemctl restart blackpepper`.
+4. Проверьте `https://…/robots.txt` и `https://…/sitemap.xml`, отправьте sitemap в Яндекс.Вебмастер
+   и Google Search Console.
+

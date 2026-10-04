@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
 
     'accounts',
     'audit',
@@ -70,6 +71,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'main.context_processors.cart',
                 'main.context_processors.hero_image',
+                'main.context_processors.seo',
             ],
         },
     },
@@ -162,6 +164,22 @@ PAYMENT_CURRENCY = env('PAYMENT_CURRENCY', default='KZT')
 # Онлайн-оплата включается автоматически, когда заданы оба реквизита.
 # Пока их нет — чекаут работает по-старому (заказ создаётся, менеджер звонит).
 PAYMENTS_ENABLED = bool(TIPTOP_PUBLIC_ID and TIPTOP_API_SECRET)
+
+# --- SEO / публичные реквизиты магазина -----------------------------------
+# SITE_URL — боевой домен: из него строятся canonical, Open Graph, sitemap и
+# JSON-LD (поисковикам нужны абсолютные адреса именно основного зеркала).
+SITE_URL = env('SITE_URL', default='https://blackpepperflowerbar.kz')
+SHOP_NAME = 'Blackpepper Flower Bar'
+SHOP_PHONE = '+77066644144'
+SHOP_PHONE_DISPLAY = '+7 (706) 664-41-44'
+SHOP_STREET = 'ул. Желтоксан, 87а'
+SHOP_CITY = 'Алматы'
+SHOP_ADDRESS_FULL = f'г. {SHOP_CITY}, {SHOP_STREET}'
+# Почта магазина показывается на сайте только если задана в .env.
+SHOP_EMAIL = env('SHOP_EMAIL', default='')
+# Счётчики аналитики подключаются, только если заданы ID.
+YANDEX_METRIKA_ID = env('YANDEX_METRIKA_ID', default='')
+GA4_MEASUREMENT_ID = env('GA4_MEASUREMENT_ID', default='')
 
 # Яндекс Карты — автоподсказки адреса на чекауте.
 # Геосаджест отдаёт только текстовые подсказки, Геокодер — координаты выбранного

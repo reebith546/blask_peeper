@@ -1,7 +1,11 @@
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
-from .models import Category, Product
+from main import seo
+
+from .models import Category, Product, SlugRedirect
 from .utils import shuffle
 
 
@@ -27,7 +31,17 @@ def product_list(request, category_slug=None):
 
     current_category = None
     if category_slug:
-        current_category = get_object_or_404(Category, slug=category_slug, is_active=True)
+        try:
+            current_category = Category.objects.get(slug=category_slug, is_active=True)
+        except Category.DoesNotExist:
+            # Прежний адрес (кириллический/в другом регистре) — 301 на новый.
+            moved = (
+                SlugRedirect.objects.filter(old_slug__iexact=category_slug, category__is_active=True)
+                .select_related('category').first()
+            )
+            if moved:
+                return HttpResponsePermanentRedirect(moved.category.get_absolute_url())
+            raise Http404
         # Товар попадает в категорию и как в основную, и как в дополнительную.
         products = products.filter(
             Q(category=current_category) | Q(extra_categories=current_category)
@@ -58,7 +72,30 @@ def product_list(request, category_slug=None):
         rest = shuffle(p for p in products if not p.is_popular)
         products = popular + rest
 
+    # Страницы с фильтрами/поиском не должны индексироваться как отдельные:
+    # canonical ведёт на чистый URL, а сами они — noindex.
+    filtered = bool(query or current_sort or min_price is not None or max_price is not None)
+    if current_category:
+        seo_title = seo.category_title(current_category)
+        seo_description = seo.category_description(current_category)
+        crumbs = [
+            ('Главная', seo.absolute_url('/')),
+            ('Каталог', seo.absolute_url(reverse('catalog:product_list'))),
+            (current_category.name, seo.absolute_url(current_category.get_absolute_url())),
+        ]
+    else:
+        seo_title = seo.CATALOG_TITLE
+        seo_description = seo.CATALOG_DESCRIPTION
+        crumbs = [
+            ('Главная', seo.absolute_url('/')),
+            ('Каталог', seo.absolute_url(reverse('catalog:product_list'))),
+        ]
+
     context = {
+        'seo_title': seo_title,
+        'seo_description': seo_description,
+        'noindex': filtered,
+        'jsonld_extra': [seo.to_jsonld(seo.breadcrumbs_jsonld(crumbs))],
         'categories': categories,
         'products': products,
         'current_category': current_category,
@@ -71,8 +108,63 @@ def product_list(request, category_slug=None):
 
 
 def product_detail(request, slug):
-    product = get_object_or_404(
-        Product.objects.select_related('category').prefetch_related('gallery', 'extra_categories'),
-        slug=slug, is_active=True,
+    try:
+        product = (
+            Product.objects.select_related('category')
+            .prefetch_related('gallery', 'extra_categories')
+            .get(slug=slug, is_active=True)
+        )
+    except Product.DoesNotExist:
+        moved = (
+            SlugRedirect.objects.filter(old_slug__iexact=slug, product__is_active=True)
+            .select_related('product').first()
+        )
+        if moved:
+            return HttpResponsePermanentRedirect(moved.product.get_absolute_url())
+        raise Http404
+    description = seo.product_description(product)
+
+    # Похожие букеты — перелинковка внутри категории (и закрывает «сирот»
+    # без внутренних ссылок для поискового робота).
+    similar = (
+        Product.objects.filter(is_active=True)
+        .filter(Q(category=product.category) | Q(extra_categories=product.category))
+        .exclude(pk=product.pk)
+        .select_related('category')
+        .distinct()
+        .order_by('-is_popular', '-created_at')[:4]
     )
-    return render(request, 'catalog/product_detail.html', {'product': product})
+
+    from reviews.models import Review
+
+    reviews = Review.objects.filter(product=product, status=Review.Status.PUBLISHED)
+    stats = reviews.aggregate(avg=Avg('rating'), count=Count('pk'))
+    rating = (
+        {'avg': round(stats['avg'], 1), 'count': stats['count']} if stats['count'] else None
+    )
+
+    image_urls = [seo.absolute_url(product.image.url)]
+    image_urls += [seo.absolute_url(photo.image.url) for photo in product.gallery.all()]
+
+    crumbs = [
+        ('Главная', seo.absolute_url('/')),
+        ('Каталог', seo.absolute_url(reverse('catalog:product_list'))),
+        (product.category.name, seo.absolute_url(product.category.get_absolute_url())),
+        (product.name, seo.absolute_url(product.get_absolute_url())),
+    ]
+
+    return render(request, 'catalog/product_detail.html', {
+        'product': product,
+        'similar_products': similar,
+        'reviews': reviews[:6],
+        'rating': rating,
+        'breadcrumbs': crumbs,
+        'seo_title': seo.product_title(product),
+        'seo_description': description,
+        'og_type': 'product',
+        'og_image': image_urls[0],
+        'jsonld_extra': [
+            seo.to_jsonld(seo.product_jsonld(product, image_urls, description, rating)),
+            seo.to_jsonld(seo.breadcrumbs_jsonld(crumbs)),
+        ],
+    })
