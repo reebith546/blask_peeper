@@ -1619,8 +1619,10 @@ a.btn { text-decoration: none; }
   .fab__btn { animation: none; }
 }
 @media (max-width: 720px) {
-  /* выше нижней навигации */
-  .fab { right: 14px; bottom: calc(82px + env(safe-area-inset-bottom, 0px)); gap: 12px; }
+  /* выше нижней навигации (её высоту main.js кладёт в --bottom-nav-h); звонок
+     на мобильном уже есть в нижней панели («Связаться»), поэтому только WhatsApp */
+  .fab { right: 14px; bottom: calc(var(--bottom-nav-h, 90px) + 16px); }
+  .fab__btn--phone { display: none; }
   .fab__btn { width: 52px; height: 52px; }
   .fab__btn svg { width: 24px; height: 24px; }
 }

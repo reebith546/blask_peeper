@@ -302,3 +302,16 @@
     });
   });
 })();
+
+// Высота нижней панели на мобильном — чтобы плавающая кнопка WhatsApp не заезжала под неё.
+(function () {
+  var nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+  function sync() {
+    document.documentElement.style.setProperty('--bottom-nav-h', nav.offsetHeight + 'px');
+  }
+  sync();
+  window.addEventListener('resize', sync);
+  window.addEventListener('load', sync);
+  if (window.ResizeObserver) new ResizeObserver(sync).observe(nav);
+})();
