@@ -369,3 +369,11 @@ class BuyInOneClickWhatsAppTests(SeoFixtureMixin, TestCase):
         self.product.save(update_fields=['in_stock'])
         html = self.client.get(self.product.get_absolute_url()).content.decode()
         self.assertNotRegex(html, r'wa\.me/[^"]+"[^>]*>Купить в 1 клик')
+
+
+class FloatingContactButtonsTests(SeoFixtureMixin, TestCase):
+    def test_whatsapp_and_phone_buttons_are_on_every_page(self):
+        for url in ('/', '/catalog/', self.product.get_absolute_url(), '/delivery/'):
+            html = self.client.get(url).content.decode()
+            self.assertIn('class="fab__btn fab__btn--wa" href="https://wa.me/77066644144', html, url)
+            self.assertIn('class="fab__btn fab__btn--phone" href="tel:+77066644144"', html, url)
