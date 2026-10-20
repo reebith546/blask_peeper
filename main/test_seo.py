@@ -348,3 +348,24 @@ class FaviconTests(TestCase):
         response = self.client.get('/favicon.ico')
         self.assertEqual(response.status_code, 301)
         self.assertTrue(response['Location'].endswith('/static/images/favicon.ico'))
+
+
+class BuyInOneClickWhatsAppTests(SeoFixtureMixin, TestCase):
+    def _link(self, html):
+        return re.search(r'href="(https://wa\.me/[^"]+)"[^>]*>Купить в 1 клик', html).group(1)
+
+    def test_card_and_product_page_open_whatsapp_with_prefilled_order(self):
+        from urllib.parse import unquote
+        for url in ('/catalog/', self.product.get_absolute_url()):
+            link = self._link(self.client.get(url).content.decode())
+            self.assertTrue(link.startswith('https://wa.me/77066644144?text='), url)
+            text = unquote(link)
+            self.assertIn('Black Amour', text)
+            self.assertIn('29 500 ₸', text)
+            self.assertIn(f'{SITE}/catalog/product/black-amour/', text)
+
+    def test_out_of_stock_product_has_no_whatsapp_buy_button(self):
+        self.product.in_stock = False
+        self.product.save(update_fields=['in_stock'])
+        html = self.client.get(self.product.get_absolute_url()).content.decode()
+        self.assertNotRegex(html, r'wa\.me/[^"]+"[^>]*>Купить в 1 клик')

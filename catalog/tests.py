@@ -456,8 +456,8 @@ class CatalogSearchTests(TestCase):
 
 
 class BuyNowButtonTests(TestCase):
-    """«Купить в 1 клик» — вторая кнопка рядом с «В корзину», ведёт сразу
-    на чекаут (main:cart_add с next=чекаут), минуя страницу корзины."""
+    """«Купить в 1 клик» — вторая кнопка рядом с «В корзину», открывает чат
+    WhatsApp магазина с готовым текстом заказа (корзину и чекаут не трогает)."""
 
     def setUp(self):
         self.category = Category.objects.create(name='Авторские')
@@ -469,7 +469,8 @@ class BuyNowButtonTests(TestCase):
     def test_catalog_card_has_both_buttons(self):
         html = self.client.get(reverse('catalog:product_list')).content.decode()
         self.assertIn('Купить в 1 клик', html)
-        self.assertIn(f'value="{reverse("main:checkout")}"', html)
+        self.assertIn('href="https://wa.me/77066644144?text=', html)
+        self.assertIn('В корзину', html)
 
     def test_out_of_stock_card_has_no_buttons(self):
         # Товар без остатка, но активный («Активен» — показывать на сайте),

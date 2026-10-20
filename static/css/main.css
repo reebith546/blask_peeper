@@ -526,6 +526,9 @@ ul { list-style: none; }
   border: 1px solid var(--bg-dark);
 }
 .bouquet-card__buy-now-btn:hover { background: #fff; color: var(--bg-dark); }
+/* «Купить в 1 клик» — ссылка на WhatsApp, а не кнопка формы */
+a.bouquet-card__buy-now-btn { display: block; box-sizing: border-box; text-decoration: none; }
+a.btn { text-decoration: none; }
 .bouquet-card__cart-btn {
   background: transparent;
   color: var(--text-onLight);

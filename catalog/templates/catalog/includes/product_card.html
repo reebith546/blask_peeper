@@ -26,7 +26,7 @@
       {# Одна общая форма #card-cart-form на странице (блок card_form в base.html): #}
       {# кнопки отправляют её через form/formaction — без CSRF-токена в каждой карточке. #}
       <div class="bouquet-card__actions">
-        <button class="bouquet-card__buy-now-btn" type="submit" form="card-cart-form" formaction="{% url 'main:cart_add' product.pk %}" name="next" value="{% url 'main:checkout' %}">Купить в 1 клик</button>
+        <a class="bouquet-card__buy-now-btn" href="{{ product|whatsapp_order_url }}" target="_blank" rel="noopener">Купить в 1 клик</a>
         <button class="bouquet-card__cart-btn" type="submit" form="card-cart-form" formaction="{% url 'main:cart_add' product.pk %}" name="next" value="{{ request.path }}">В корзину</button>
       </div>
     {% else %}

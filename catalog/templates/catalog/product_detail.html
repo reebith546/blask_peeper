@@ -76,7 +76,11 @@
         {% csrf_token %}
         <input class="qty-input" type="number" name="quantity" min="1" max="20" value="1" {% if not product.in_stock %}disabled{% endif %}>
         <button class="btn btn--outline-light" type="submit" name="next" value="" {% if not product.in_stock %}disabled{% endif %}>В корзину</button>
-        <button class="btn btn--primary" type="submit" name="next" value="{% url 'main:checkout' %}" {% if not product.in_stock %}disabled{% endif %}>Купить в 1 клик</button>
+        {% if product.in_stock %}
+          <a class="btn btn--primary" href="{{ product|whatsapp_order_url }}" target="_blank" rel="noopener">Купить в 1 клик</a>
+        {% else %}
+          <button class="btn btn--primary" type="button" disabled>Купить в 1 клик</button>
+        {% endif %}
       </form>
     </div>
   </div>

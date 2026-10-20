@@ -14,6 +14,24 @@ def kzt(value):
 
 
 @register.filter
+def whatsapp_order_url(product):
+    """Ссылка «Купить в 1 клик»: чат WhatsApp магазина с готовым текстом заказа."""
+    from urllib.parse import quote
+
+    from django.conf import settings
+
+    from main.seo import absolute_url
+
+    phone = ''.join(ch for ch in settings.SHOP_PHONE if ch.isdigit())
+    text = (
+        f'Здравствуйте! Хочу заказать букет «{product.name}» '
+        f'({kzt(product.effective_price)}).\n'
+        f'{absolute_url(product.get_absolute_url())}'
+    )
+    return f'https://wa.me/{phone}?text={quote(text)}'
+
+
+@register.filter
 def stars(rating):
     """Возвращает строку из звёзд для рейтинга отзыва: 4 -> «★★★★»."""
     try:
