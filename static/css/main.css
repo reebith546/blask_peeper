@@ -1583,6 +1583,9 @@ a.btn { text-decoration: none; }
 
 
 /* ============ Плавающие кнопки «WhatsApp» и «Позвонить» ============ */
+/* Позиция фиксированная: на широком экране — правый нижний угол, на телефоне и
+   планшете (там появляется нижняя панель, ≤1200px) — над ней. Высоту панели
+   main.js кладёт в --bottom-nav-h, 64px — запас до его запуска. */
 .fab {
   position: fixed;
   right: 20px;
@@ -1604,11 +1607,13 @@ a.btn { text-decoration: none; }
   background: var(--fab-color);
   color: #fff;
   box-shadow: 0 0 0 5px color-mix(in srgb, var(--fab-color) 38%, transparent), 0 6px 18px rgba(0,0,0,0.28);
-  transition: transform 0.25s ease;
   animation: fab-pulse 2.4s ease-out infinite;
 }
 .fab__btn--phone { --fab-color: #136F63; animation-delay: 1.2s; }
-.fab__btn:hover { transform: scale(1.08); }
+@media (hover: hover) {
+  .fab__btn { transition: transform 0.25s ease; }
+  .fab__btn:hover { transform: scale(1.08); }
+}
 .fab__btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 @keyframes fab-pulse {
   0%   { box-shadow: 0 0 0 5px color-mix(in srgb, var(--fab-color) 38%, transparent), 0 0 0 5px color-mix(in srgb, var(--fab-color) 38%, transparent), 0 6px 18px rgba(0,0,0,0.28); }
@@ -1618,11 +1623,15 @@ a.btn { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .fab__btn { animation: none; }
 }
-@media (max-width: 720px) {
-  /* выше нижней навигации (её высоту main.js кладёт в --bottom-nav-h); звонок
-     на мобильном уже есть в нижней панели («Связаться»), поэтому только WhatsApp */
-  .fab { right: 14px; bottom: calc(var(--bottom-nav-h, 90px) + 16px); }
+/* На ноутбуке с мышью звонить с сайта нельзя — кнопку телефона там не показываем. */
+@media (min-width: 1201px) and (hover: hover) and (pointer: fine) {
   .fab__btn--phone { display: none; }
+}
+@media (max-width: 1200px) {
+  .fab { right: 16px; bottom: calc(var(--bottom-nav-h, 64px) + 16px); gap: 12px; }
+}
+@media (max-width: 720px) {
+  .fab { right: 14px; }
   .fab__btn { width: 52px; height: 52px; }
   .fab__btn svg { width: 24px; height: 24px; }
 }
